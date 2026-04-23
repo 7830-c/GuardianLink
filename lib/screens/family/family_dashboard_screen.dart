@@ -121,9 +121,8 @@ class _FamilyDashboardScreenState extends State<FamilyDashboardScreen> {
         ]),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: 0,
         onTap: (i) {
-          setState(() => _selectedIndex = i);
           if (i == 1) context.push('/family/tracking');
           if (i == 2) context.push('/family/alert-history');
           if (i == 3) context.push('/family/settings');

@@ -136,9 +136,8 @@ class _ActiveAlertsScreenState extends State<ActiveAlertsScreen> {
         ]),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: 0,
         onTap: (i) {
-          setState(() => _selectedIndex = i);
           if (i == 1) context.push('/volunteer/response-history');
           if (i == 2) context.push('/volunteer/profile');
         },

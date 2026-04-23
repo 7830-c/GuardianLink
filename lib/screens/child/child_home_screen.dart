@@ -13,6 +13,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+  late AnimationController _holdController;
   int _selectedIndex = 0;
 
   @override
@@ -20,10 +21,32 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
     super.initState();
     _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
     _pulseAnim = Tween<double>(begin: 0.95, end: 1.05).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+    
+    _holdController = AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _holdController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _holdController.reset();
+        _showSOSDialog(context);
+      }
+    });
   }
 
   @override
-  void dispose() { _pulseController.dispose(); super.dispose(); }
+  void dispose() { 
+    _pulseController.dispose(); 
+    _holdController.dispose();
+    super.dispose(); 
+  }
+
+  void _onHoldStart() {
+    _holdController.forward();
+  }
+
+  void _onHoldEnd() {
+    if (_holdController.status != AnimationStatus.completed) {
+      _holdController.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,16 +86,38 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                   ]),
                 ),
                 const SizedBox(height: 32),
-                AnimatedBuilder(
-                  animation: _pulseAnim,
-                  builder: (_, __) => GestureDetector(
-                    onTap: () => _showSOSDialog(context),
-                    child: Stack(alignment: Alignment.center, children: [
-                      ...List.generate(3, (i) => Container(
-                        width: 200.0 + (i * 30), height: 200.0 + (i * 30),
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.sosRed.withAlpha((10 * (3 - i)).toInt())),
-                      )),
-                      Transform.scale(
+                GestureDetector(
+                  onTapDown: (_) => _onHoldStart(),
+                  onTapUp: (_) => _onHoldEnd(),
+                  onTapCancel: () => _onHoldEnd(),
+                  child: Stack(alignment: Alignment.center, children: [
+                    // Outer pulse/rings
+                    AnimatedBuilder(
+                      animation: _pulseAnim,
+                      builder: (_, __) => Stack(alignment: Alignment.center, children: [
+                        ...List.generate(3, (i) => Container(
+                          width: 200.0 + (i * 30), height: 200.0 + (i * 30),
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.sosRed.withAlpha((10 * (3 - i)).toInt())),
+                        )),
+                      ]),
+                    ),
+                    // Hold progress indicator
+                    AnimatedBuilder(
+                      animation: _holdController,
+                      builder: (_, __) => SizedBox(
+                        width: 210, height: 210,
+                        child: CircularProgressIndicator(
+                          value: _holdController.value,
+                          strokeWidth: 8,
+                          color: Colors.white,
+                          backgroundColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    // Main SOS Button
+                    AnimatedBuilder(
+                      animation: _pulseAnim,
+                      builder: (_, __) => Transform.scale(
                         scale: _pulseAnim.value,
                         child: Container(
                           width: 180, height: 180,
@@ -85,12 +130,12 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                             const Icon(Icons.sos, color: Colors.white, size: 56),
                             const SizedBox(height: 4),
                             Text('SOS', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
-                            Text('Press & Hold', style: GoogleFonts.inter(fontSize: 10, color: Colors.white70)),
+                            Text('Hold 3s', style: GoogleFonts.inter(fontSize: 10, color: Colors.white70)),
                           ]),
                         ),
                       ),
-                    ]),
-                  ),
+                    ),
+                  ]),
                 ),
                 const SizedBox(height: 8),
                 Text('Hold for 3 seconds to send emergency alert', textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline)),
@@ -121,8 +166,11 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
         ]),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        currentIndex: 0,
+        onTap: (i) {
+          if (i == 1) context.push('/live-tracking');
+          if (i == 2) context.push('/profile');
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.location_on_outlined), activeIcon: Icon(Icons.location_on), label: 'Location'),

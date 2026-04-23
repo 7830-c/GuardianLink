@@ -57,6 +57,22 @@ class FamilyProfileManagementScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 4,
+        onTap: (i) {
+          if (i == 0) context.pushReplacement('/family/dashboard');
+          if (i == 1) context.pushReplacement('/family/tracking');
+          if (i == 2) context.pushReplacement('/family/alert-history');
+          if (i == 3) context.pushReplacement('/family/settings');
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Tracking'),
+          BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), activeIcon: Icon(Icons.notifications), label: 'Alerts'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 

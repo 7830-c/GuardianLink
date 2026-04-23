@@ -70,6 +70,18 @@ class PoliceIncidentArchiveScreen extends StatelessWidget {
           ),
         ),
       ]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        onTap: (i) {
+          if (i == 0) context.pushReplacement('/police/command-center');
+          if (i == 2) context.pushReplacement('/police/settings');
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Dispatch'),
+          BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), activeIcon: Icon(Icons.folder), label: 'Archive'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
     );
   }
 }

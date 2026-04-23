@@ -116,7 +116,15 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('SOS Alert Cancelled', style: GoogleFonts.inter()),
+                          backgroundColor: AppColors.secondaryContainer,
+                        ),
+                      );
+                      context.go('/child/home');
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.secondary),
                       foregroundColor: AppColors.secondary,

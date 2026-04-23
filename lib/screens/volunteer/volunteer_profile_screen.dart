@@ -110,6 +110,18 @@ class VolunteerProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        onTap: (i) {
+          if (i == 0) context.pushReplacement('/volunteer/active-alerts');
+          if (i == 1) context.pushReplacement('/volunteer/response-history');
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.notifications_active_outlined), activeIcon: Icon(Icons.notifications_active), label: 'Alerts'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), activeIcon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 

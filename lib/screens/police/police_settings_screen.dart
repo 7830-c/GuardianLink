@@ -37,6 +37,18 @@ class _PoliceSettingsScreenState extends State<PoliceSettingsScreen> {
           _navRow('Sign Out', Icons.logout, () => context.go('/role-selection'), color: Colors.redAccent),
         ]),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        onTap: (i) {
+          if (i == 0) context.pushReplacement('/police/command-center');
+          if (i == 1) context.pushReplacement('/police/archive');
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Dispatch'),
+          BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), activeIcon: Icon(Icons.folder), label: 'Archive'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
     );
   }
 

@@ -134,11 +134,10 @@ class _PoliceCommandCenterScreenState extends State<PoliceCommandCenterScreen> {
         ]),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: 0,
         onTap: (i) {
-          setState(() => _selectedIndex = i);
           if (i == 1) context.push('/police/archive');
-          if (i == 2) context.push('/police/settings'); // Replace with proper routing if needed
+          if (i == 2) context.push('/police/settings');
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Dispatch'),

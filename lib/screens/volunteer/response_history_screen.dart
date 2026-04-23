@@ -86,6 +86,18 @@ class ResponseHistoryScreen extends StatelessWidget {
           ),
         ),
       ]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        onTap: (i) {
+          if (i == 0) context.pushReplacement('/volunteer/active-alerts');
+          if (i == 2) context.pushReplacement('/volunteer/profile');
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.notifications_active_outlined), activeIcon: Icon(Icons.notifications_active), label: 'Alerts'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), activeIcon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 }
