@@ -5,14 +5,14 @@ import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
 import '../../widgets/guardian_text_field.dart';
 
-class ChildLoginScreen extends StatefulWidget {
-  const ChildLoginScreen({super.key});
+class LovedOneLoginScreen extends StatefulWidget {
+  const LovedOneLoginScreen({super.key});
 
   @override
-  State<ChildLoginScreen> createState() => _ChildLoginScreenState();
+  State<LovedOneLoginScreen> createState() => _LovedOneLoginScreenState();
 }
 
-class _ChildLoginScreenState extends State<ChildLoginScreen> {
+class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _pinController = TextEditingController();
@@ -32,7 +32,7 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() => _isLoading = false);
-        context.go('/child/home');
+        context.go('/loved-one/home');
       }
     }
   }
@@ -62,13 +62,13 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                     color: AppColors.tertiaryContainer.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.child_care, size: 36, color: AppColors.tertiary),
+                  child: const Icon(Icons.favorite, size: 32, color: AppColors.tertiary),
                 ),
                 const SizedBox(height: 24),
                 Text('Welcome Back',
                     style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
                 const SizedBox(height: 8),
-                Text('Sign in to your child account',
+                Text('Sign in to your personal safety account',
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 40),
                 GuardianTextField(
@@ -134,7 +134,7 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                     Text("Don't have an account? ",
                         style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 13)),
                     GestureDetector(
-                      onTap: () => context.go('/child/register'),
+                      onTap: () => context.go('/loved-one/register'),
                       child: Text('Register',
                           style: GoogleFonts.inter(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
                     ),

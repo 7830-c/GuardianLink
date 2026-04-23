@@ -98,12 +98,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   ),
                   const SizedBox(height: 16),
                   _RoleCard(
-                    icon: Icons.child_care,
-                    title: 'Child / Member',
+                    icon: Icons.favorite,
+                    title: 'Loved One / Member',
                     subtitle: 'Stay connected and trigger SOS alerts when needed',
                     color: AppColors.tertiary,
                     containerColor: AppColors.tertiaryContainer,
-                    onTap: () => context.go('/child/login'),
+                    onTap: () => context.go('/loved-one/login'),
                   ),
                   const SizedBox(height: 16),
                   _RoleCard(

@@ -5,14 +5,14 @@ import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
 import '../../widgets/guardian_text_field.dart';
 
-class ChildRegistrationScreen extends StatefulWidget {
-  const ChildRegistrationScreen({super.key});
+class LovedOneRegistrationScreen extends StatefulWidget {
+  const LovedOneRegistrationScreen({super.key});
 
   @override
-  State<ChildRegistrationScreen> createState() => _ChildRegistrationScreenState();
+  State<LovedOneRegistrationScreen> createState() => _LovedOneRegistrationScreenState();
 }
 
-class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
+class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
@@ -39,7 +39,7 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() => _isLoading = false);
-        context.go('/child/home');
+        context.go('/loved-one/home');
       }
     }
   }
@@ -59,13 +59,13 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
                 const SizedBox(height: 16),
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
-                  onPressed: () => context.go('/child/login'),
+                  onPressed: () => context.go('/loved-one/login'),
                 ),
                 const SizedBox(height: 24),
                 Text('Create Account',
                     style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
                 const SizedBox(height: 8),
-                Text('Register as a child member',
+                Text('Register for your personal safety network',
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 32),
                 // Step indicator
@@ -158,7 +158,7 @@ class _ChildRegistrationScreenState extends State<ChildRegistrationScreen> {
                     Text('Already have an account? ',
                         style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 13)),
                     GestureDetector(
-                      onTap: () => context.go('/child/login'),
+                      onTap: () => context.go('/loved-one/login'),
                       child: Text('Sign In',
                           style: GoogleFonts.inter(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
                     ),

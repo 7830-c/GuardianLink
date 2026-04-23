@@ -3,13 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 
-class ChildHomeScreen extends StatefulWidget {
-  const ChildHomeScreen({super.key});
+class LovedOneHomeScreen extends StatefulWidget {
+  const LovedOneHomeScreen({super.key});
   @override
-  State<ChildHomeScreen> createState() => _ChildHomeScreenState();
+  State<LovedOneHomeScreen> createState() => _LovedOneHomeScreenState();
 }
 
-class _ChildHomeScreenState extends State<ChildHomeScreen>
+class _LovedOneHomeScreenState extends State<LovedOneHomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -207,7 +207,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.onSurfaceVariant))),
           ElevatedButton(
-            onPressed: () { Navigator.pop(context); context.go('/child/sos-progress'); },
+            onPressed: () { Navigator.pop(context); context.go('/loved-one/sos-progress'); },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.sosRed, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             child: Text('Send SOS', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           ),

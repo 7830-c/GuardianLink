@@ -2,10 +2,10 @@ import 'package:go_router/go_router.dart';
 import '../screens/splash_screen.dart';
 import '../screens/error_screen.dart';
 import '../screens/role_selection_screen.dart';
-import '../screens/child/child_login_screen.dart';
-import '../screens/child/child_registration_screen.dart';
-import '../screens/child/child_home_screen.dart';
-import '../screens/child/sos_alert_progress_screen.dart';
+import '../screens/loved_one/loved_one_login_screen.dart';
+import '../screens/loved_one/loved_one_registration_screen.dart';
+import '../screens/loved_one/loved_one_home_screen.dart';
+import '../screens/loved_one/sos_alert_progress_screen.dart';
 import '../screens/family/family_login_screen.dart';
 import '../screens/family/family_registration_screen.dart';
 import '../screens/family/family_dashboard_screen.dart';
@@ -46,11 +46,11 @@ class AppRouter {
       GoRoute(path: '/error', builder: (c, s) => const ErrorScreen()),
       GoRoute(path: '/role-selection', builder: (c, s) => const RoleSelectionScreen()),
 
-      // Child Routes
-      GoRoute(path: '/child/login', builder: (c, s) => const ChildLoginScreen()),
-      GoRoute(path: '/child/register', builder: (c, s) => const ChildRegistrationScreen()),
-      GoRoute(path: '/child/home', builder: (c, s) => const ChildHomeScreen()),
-      GoRoute(path: '/child/sos-progress', builder: (c, s) => const SosAlertProgressScreen()),
+      // Loved One Routes
+      GoRoute(path: '/loved-one/login', builder: (c, s) => const LovedOneLoginScreen()),
+      GoRoute(path: '/loved-one/register', builder: (c, s) => const LovedOneRegistrationScreen()),
+      GoRoute(path: '/loved-one/home', builder: (c, s) => const LovedOneHomeScreen()),
+      GoRoute(path: '/loved-one/sos-progress', builder: (c, s) => const SosAlertProgressScreen()),
 
       // Family Routes
       GoRoute(path: '/family/login', builder: (c, s) => const FamilyLoginScreen()),

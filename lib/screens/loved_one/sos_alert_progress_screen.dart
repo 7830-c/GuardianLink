@@ -102,7 +102,7 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => context.go('/child/home'),
+                    onPressed: () => context.go('/loved-one/home'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryContainer,
                       foregroundColor: AppColors.onPrimaryContainer,
@@ -124,7 +124,7 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
                         backgroundColor: done ? Colors.green : AppColors.secondaryContainer,
                       ),
                     );
-                    context.go('/child/home');
+                    context.go('/loved-one/home');
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: done ? Colors.green : AppColors.secondary),
