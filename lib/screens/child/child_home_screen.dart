@@ -137,12 +137,12 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                             gradient: const RadialGradient(colors: [Color(0xFFDC2626), Color(0xFF9B1C1C)]),
                             boxShadow: [BoxShadow(color: AppColors.sosRed.withAlpha(128), blurRadius: 30, spreadRadius: 5)],
                           ),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.sos, color: Colors.white, size: 56),
-                            const SizedBox(height: 4),
-                            Text('SOS', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
-                            Text('Hold 3s', style: GoogleFonts.inter(fontSize: 10, color: Colors.white70)),
-                          ]),
+                          child: Center(
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Text('SOS', style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+                              Text('Hold 3s', style: GoogleFonts.inter(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w500)),
+                            ]),
+                          ),
                         ),
                       ),
                     ),

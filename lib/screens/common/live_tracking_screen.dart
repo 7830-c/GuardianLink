@@ -5,8 +5,48 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guardian_map_view.dart';
 
-class LiveTrackingScreen extends StatelessWidget {
+import 'package:geocoding/geocoding.dart';
+import '../../services/location_service.dart';
+
+class LiveTrackingScreen extends StatefulWidget {
   const LiveTrackingScreen({super.key});
+
+  @override
+  State<LiveTrackingScreen> createState() => _LiveTrackingScreenState();
+}
+
+class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
+  String _currentAddress = 'Fetching location...';
+  LatLng _currentPos = const LatLng(28.6304, 77.2177);
+
+  @override
+  void initState() {
+    super.initState();
+    _updateLocation();
+  }
+
+  Future<void> _updateLocation() async {
+    try {
+      final pos = await LocationService.getCurrentLocation();
+      if (pos == null) return;
+      
+      final List<Placemark> placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      
+      if (mounted) {
+        setState(() {
+          _currentPos = LatLng(pos.latitude, pos.longitude);
+          if (placemarks.isNotEmpty) {
+            final pm = placemarks.first;
+            _currentAddress = '${pm.name}, ${pm.subLocality}, ${pm.locality}';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _currentAddress = 'Location services unavailable');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +72,12 @@ class LiveTrackingScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Location Sharing Active', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                Text('Dynamic Location Tracking • Updated live', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                Text(_currentAddress, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
               ])),
-              const Icon(Icons.gps_fixed, color: AppColors.primary, size: 20),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.primary, size: 20),
+                onPressed: _updateLocation,
+              ),
             ]),
           ),
         ),
@@ -52,13 +95,13 @@ class LiveTrackingScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 child: Stack(children: [
                   GuardianMapView(
-                    initialPosition: const LatLng(28.6304, 77.2177),
+                    initialPosition: _currentPos,
                     zoom: 15.0,
                     useLiveLocation: true,
                   ),
                   // Floating recenter button
                   Positioned(bottom: 16, right: 16, child: FloatingActionButton.small(
-                    onPressed: () {},
+                    onPressed: _updateLocation,
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     child: const Icon(Icons.my_location),
@@ -79,9 +122,9 @@ class LiveTrackingScreen extends StatelessWidget {
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-              const _MapStat('28.6304° N', 'Latitude'),
+              _MapStat('${_currentPos.latitude.toStringAsFixed(4)}° N', 'Latitude'),
               Container(width: 1, height: 32, color: AppColors.outlineVariant),
-              const _MapStat('77.2177° E', 'Longitude'),
+              _MapStat('${_currentPos.longitude.toStringAsFixed(4)}° E', 'Longitude'),
               Container(width: 1, height: 32, color: AppColors.outlineVariant),
               const _MapStat('±5m', 'Accuracy'),
             ]),
