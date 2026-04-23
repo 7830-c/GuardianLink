@@ -21,7 +21,7 @@ class GuardianLinkApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'GuardianLink Safety Network',
+      title: 'GuardianLink',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: AppRouter.router,

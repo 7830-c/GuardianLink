@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>GuardianLink needs access to your location to provide real-time safety tracking and SOS alerts.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>GuardianLink needs access to your location in the background to keep your guardians informed of your safety.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>GuardianLink needs access to your location to provide real-time safety tracking and SOS alerts.</string>
 </dict>
 </plist>

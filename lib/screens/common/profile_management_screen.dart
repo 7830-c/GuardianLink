@@ -85,6 +85,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           const SizedBox(height: 24),
           if (_editing) GuardianButton(label: 'Save Changes', icon: Icons.save_outlined, onPressed: () => setState(() => _editing = false)),
           const SizedBox(height: 12),
+          GuardianButton(label: 'Help & Support', icon: Icons.help_outline, outlined: true, onPressed: () => context.push('/help')),
+          const SizedBox(height: 12),
           GuardianButton(label: 'Sign Out', outlined: true, foregroundColor: AppColors.secondary, onPressed: () => context.go('/role-selection')),
           const SizedBox(height: 24),
         ]),

@@ -34,6 +34,7 @@ class _PoliceSettingsScreenState extends State<PoliceSettingsScreen> {
           _header('System'),
           _navRow('Department Protocols', Icons.gavel_outlined, () {}),
           _navRow('Update Duty Status', Icons.work_outline, () {}),
+          _navRow('Help & Support', Icons.help_outline, () => context.push('/help')),
           _navRow('Sign Out', Icons.logout, () => context.go('/role-selection'), color: Colors.redAccent),
         ]),
       ),

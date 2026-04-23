@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/guardian_map_view.dart';
 
 class FamilyTrackingScreen extends StatelessWidget {
   const FamilyTrackingScreen({super.key});
@@ -16,55 +18,30 @@ class FamilyTrackingScreen extends StatelessWidget {
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () {})],
       ),
       body: Column(children: [
-        // Map placeholder
+        // Real Google Map
         Expanded(
           flex: 3,
           child: Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)],
             ),
-            child: Stack(children: [
-              // Map mock
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-                        colors: [Color(0xFF0D1B3E), Color(0xFF1a2744)]),
-                  ),
-                  child: CustomPaint(painter: _MapGridPainter()),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(children: [
+                GuardianMapView(
+                  initialPosition: const LatLng(28.6139, 77.2090),
+                  zoom: 13.0,
+                  markers: {
+                    Marker(markerId: const MarkerId('arjun'), position: const LatLng(28.6304, 77.2177), infoWindow: const InfoWindow(title: 'Arjun')),
+                    Marker(markerId: const MarkerId('priya'), position: const LatLng(28.6100, 77.2300), infoWindow: const InfoWindow(title: 'Priya')),
+                  },
                 ),
-              ),
-              // Member pins
-              ...[
-                {'x': 0.4, 'y': 0.3, 'name': 'Arjun', 'color': AppColors.tertiary},
-                {'x': 0.6, 'y': 0.5, 'name': 'Priya', 'color': Colors.green},
-                {'x': 0.25, 'y': 0.65, 'name': 'Meera', 'color': AppColors.secondary},
-              ].map((pin) => Positioned(
-                left: MediaQuery.of(context).size.width * (pin['x'] as double) - 60,
-                top: (MediaQuery.of(context).size.height * 0.45) * (pin['y'] as double),
-                child: Column(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: (pin['color'] as Color).withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
-                    child: Text(pin['name'] as String, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
-                  ),
-                  Container(width: 2, height: 12, color: pin['color'] as Color),
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: pin['color'] as Color, shape: BoxShape.circle)),
-                ]),
-              )),
-              // Controls
-              Positioned(top: 12, right: 12, child: Column(children: [
-                _MapBtn(icon: Icons.add, onTap: () {}),
-                const SizedBox(height: 8),
-                _MapBtn(icon: Icons.remove, onTap: () {}),
-                const SizedBox(height: 8),
-                _MapBtn(icon: Icons.my_location, onTap: () {}),
-              ])),
-            ]),
+              ]),
+            ),
           ),
         ),
         // Member list
@@ -102,20 +79,6 @@ class FamilyTrackingScreen extends StatelessWidget {
   }
 }
 
-class _MapBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _MapBtn({required this.icon, required this.onTap});
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 36, height: 36,
-      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.outlineVariant)),
-      child: Icon(icon, size: 18, color: AppColors.onSurface),
-    ),
-  );
-}
 
 class _TrackingMember extends StatelessWidget {
   final String name, location, speed;
@@ -144,23 +107,4 @@ class _TrackingMember extends StatelessWidget {
       ]),
     ]),
   );
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = const Color(0xFF1E40AF).withValues(alpha: 0.1)..strokeWidth = 0.8;
-    for (double x = 0; x < size.width; x += 30) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-    for (double y = 0; y < size.height; y += 30) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
-    }
-    // Roads
-    final road = Paint()..color = const Color(0xFF2D3449)..strokeWidth = 4;
-    canvas.drawLine(Offset(size.width * 0.2, 0), Offset(size.width * 0.4, size.height), road);
-    canvas.drawLine(Offset(0, size.height * 0.4), Offset(size.width, size.height * 0.55), road);
-  }
-  @override
-  bool shouldRepaint(_) => false;
 }

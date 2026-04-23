@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/guardian_map_view.dart';
 
 class LiveTrackingScreen extends StatelessWidget {
   const LiveTrackingScreen({super.key});
@@ -13,87 +15,104 @@ class LiveTrackingScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Live Tracking'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
-        actions: [
-          IconButton(icon: const Icon(Icons.layers_outlined), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.share_location_outlined), onPressed: () {}),
-        ],
       ),
-      body: Stack(children: [
-        // Full-screen map
-        Positioned.fill(
-          child: Container(
-            color: const Color(0xFF131B2E),
-            child: CustomPaint(painter: _LiveMapPainter()),
-          ),
-        ),
-        // Location pin
-        Center(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 20, spreadRadius: 4)],
-              ),
-              child: const Icon(Icons.my_location, color: Colors.white, size: 28),
-            ),
-          ]),
-        ),
-        // Top info card
-        Positioned(top: 16, left: 16, right: 16,
+      body: Column(children: [
+        // Top info card (Status)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainer.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(14),
+              color: AppColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
             ),
             child: Row(children: [
               Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Location Sharing Active', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                Text('Connaught Place, New Delhi • Updated just now', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                Text('Location Sharing Active', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+                Text('Dynamic Location Tracking • Updated live', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
               ])),
               const Icon(Icons.gps_fixed, color: AppColors.primary, size: 20),
             ]),
           ),
         ),
-        // Bottom panel
-        Positioned(bottom: 0, left: 0, right: 0,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer.withValues(alpha: 0.95),
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+
+        // Real Google Map
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 5))],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(children: [
+                  GuardianMapView(
+                    initialPosition: const LatLng(28.6304, 77.2177),
+                    zoom: 15.0,
+                    useLiveLocation: true,
+                  ),
+                  // Floating recenter button
+                  Positioned(bottom: 16, right: 16, child: FloatingActionButton.small(
+                    onPressed: () {},
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    child: const Icon(Icons.my_location),
+                  )),
+                ]),
+              ),
             ),
-            child: Column(children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                const _MapStat('28.6304° N', 'Latitude'),
-                Container(width: 1, height: 36, color: AppColors.outlineVariant),
-                const _MapStat('77.2177° E', 'Longitude'),
-                Container(width: 1, height: 36, color: AppColors.outlineVariant),
-                const _MapStat('±5m', 'Accuracy'),
-              ]),
-              const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: OutlinedButton.icon(
-                  icon: const Icon(Icons.stop, size: 16),
-                  label: Text('Stop Sharing', style: GoogleFonts.inter(fontSize: 13)),
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.secondary, side: const BorderSide(color: AppColors.secondary), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                )),
-                const SizedBox(width: 12),
-                Expanded(child: ElevatedButton.icon(
-                  icon: const Icon(Icons.share, size: 16),
-                  label: Text('Share Link', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryContainer, foregroundColor: AppColors.onPrimaryContainer, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
-                )),
-              ]),
-            ]),
           ),
+        ),
+
+        // Bottom panel
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer,
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              const _MapStat('28.6304° N', 'Latitude'),
+              Container(width: 1, height: 32, color: AppColors.outlineVariant),
+              const _MapStat('77.2177° E', 'Longitude'),
+              Container(width: 1, height: 32, color: AppColors.outlineVariant),
+              const _MapStat('±5m', 'Accuracy'),
+            ]),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(
+                icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                label: Text('Stop Sharing', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.secondary, 
+                  side: const BorderSide(color: AppColors.secondary), 
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: ElevatedButton.icon(
+                icon: const Icon(Icons.share_outlined, size: 18),
+                label: Text('Share Link', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary, 
+                  foregroundColor: Colors.white, 
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
+                  elevation: 0,
+                ),
+              )),
+            ]),
+          ]),
         ),
       ]),
     );

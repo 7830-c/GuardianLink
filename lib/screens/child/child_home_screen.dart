@@ -10,7 +10,7 @@ class ChildHomeScreen extends StatefulWidget {
 }
 
 class _ChildHomeScreenState extends State<ChildHomeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
   late AnimationController _holdController;
@@ -46,6 +46,17 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
     if (_holdController.status != AnimationStatus.completed) {
       _holdController.reverse();
     }
+  }
+
+  void _onTap() {
+    // Show a small hint that they need to hold the button
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Press and hold for 3 seconds to send SOS', style: GoogleFonts.inter()),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -87,9 +98,9 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                 ),
                 const SizedBox(height: 32),
                 GestureDetector(
-                  onTapDown: (_) => _onHoldStart(),
-                  onTapUp: (_) => _onHoldEnd(),
-                  onTapCancel: () => _onHoldEnd(),
+                  onTap: _onTap, // Handle accidental taps
+                  onLongPressStart: (_) => _onHoldStart(),
+                  onLongPressEnd: (_) => _onHoldEnd(),
                   child: Stack(alignment: Alignment.center, children: [
                     // Outer pulse/rings
                     AnimatedBuilder(
@@ -166,8 +177,9 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
         ]),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _selectedIndex,
         onTap: (i) {
+          setState(() => _selectedIndex = i);
           if (i == 1) context.push('/live-tracking');
           if (i == 2) context.push('/profile');
         },

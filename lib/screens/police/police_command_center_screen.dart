@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/guardian_map_view.dart';
 
 class PoliceCommandCenterScreen extends StatefulWidget {
   const PoliceCommandCenterScreen({super.key});
@@ -28,7 +30,6 @@ class _PoliceCommandCenterScreenState extends State<PoliceCommandCenterScreen> {
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
               gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)]),
-              border: Border(bottom: BorderSide(color: AppColors.primary, width: 2)),
             ),
             child: Row(children: [
               Container(
@@ -50,22 +51,29 @@ class _PoliceCommandCenterScreenState extends State<PoliceCommandCenterScreen> {
             ]),
           ),
           
-          // Map stub
-          Container(
-            height: 220,
-            decoration: BoxDecoration(color: const Color(0xFF131B2E), border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3))),
-            child: Stack(children: [
-              Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.map_outlined, color: AppColors.onSurfaceVariant, size: 40),
-                const SizedBox(height: 8),
-                Text('Live Incident Map', style: GoogleFonts.inter(color: AppColors.onSurfaceVariant)),
-              ])),
-              Positioned(bottom: 12, right: 12, child: FloatingActionButton.small(
-                onPressed: () {},
-                backgroundColor: AppColors.primary,
-                child: const Icon(Icons.my_location, color: Colors.white),
-              )),
-            ]),
+          // Real Google Map
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFF131B2E), 
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10)],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: GuardianMapView(
+                  initialPosition: const LatLng(28.6304, 77.2177),
+                  zoom: 14.0,
+                  markers: {
+                    Marker(markerId: const MarkerId('sos-1'), position: const LatLng(28.6304, 77.2177), infoWindow: const InfoWindow(title: 'SOS Alert')),
+                    Marker(markerId: const MarkerId('sos-2'), position: const LatLng(28.6200, 77.2100), infoWindow: const InfoWindow(title: 'Distress Signal')),
+                  },
+                ),
+              ),
+            ),
           ),
           
           // List

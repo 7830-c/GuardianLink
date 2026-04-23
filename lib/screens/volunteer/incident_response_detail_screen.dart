@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
+import '../../widgets/guardian_map_view.dart';
 
 class IncidentResponseDetailScreen extends StatefulWidget {
   const IncidentResponseDetailScreen({super.key});
@@ -51,31 +53,49 @@ class _IncidentResponseDetailScreenState extends State<IncidentResponseDetailScr
             ]),
           ),
           const SizedBox(height: 16),
-          // Map stub
-          Container(
-            height: 180,
-            decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
-            child: Stack(children: [
-              Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(16), child: CustomPaint(painter: _SimplePainter()))),
-              Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.5), blurRadius: 12)]),
-                  child: const Icon(Icons.person_pin, color: Colors.white, size: 28),
+          // Real Google Map
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              height: 180,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerHigh, 
+                borderRadius: BorderRadius.circular(24), 
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(children: [
+                  GuardianMapView(
+                    initialPosition: const LatLng(28.6304, 77.2177),
+                    zoom: 15.0,
+                    markers: {
+                      Marker(markerId: const MarkerId('incident'), position: const LatLng(28.6304, 77.2177), infoWindow: const InfoWindow(title: 'Incident Location')),
+                    },
+                  ),
+                  // Location overlay (Optional)
+                IgnorePointer(
+                  child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.secondary.withValues(alpha: 0.5), blurRadius: 12)]),
+                      child: const Icon(Icons.person_pin, color: Colors.white, size: 28),
+                    ),
+                  ])),
                 ),
-                const SizedBox(height: 6),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.surfaceContainerHigh.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)), child: Text('Connaught Place', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.onSurface))),
-              ])),
-              Positioned(top: 10, right: 10, child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: AppColors.surfaceContainer.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.directions_walk, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  Text('0.8 km • ~10 min', style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurface)),
-                ]),
-              )),
-            ]),
+                Positioned(top: 10, right: 10, child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: AppColors.surfaceContainer.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.directions_walk, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text('0.8 km • ~10 min', style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurface)),
+                  ]),
+                )),
+              ]),
+            ),
+          ),
           ),
           const SizedBox(height: 16),
           // Person info
@@ -160,21 +180,3 @@ class _Row extends StatelessWidget {
   );
 }
 
-class _SimplePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0xFF131B2E));
-    final p = Paint()..color = const Color(0xFF1E40AF).withValues(alpha: 0.1)..strokeWidth = 0.8;
-    for (double x = 0; x < size.width; x += 25) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-    for (double y = 0; y < size.height; y += 25) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
-    }
-    final road = Paint()..color = const Color(0xFF2D3449)..strokeWidth = 6;
-    canvas.drawLine(Offset(size.width * 0.3, 0), Offset(size.width * 0.5, size.height), road);
-    canvas.drawLine(Offset(0, size.height * 0.5), Offset(size.width, size.height * 0.45), road);
-  }
-  @override
-  bool shouldRepaint(_) => false;
-}

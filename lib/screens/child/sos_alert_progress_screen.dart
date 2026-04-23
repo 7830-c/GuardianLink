@@ -112,29 +112,29 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
                     child: Text('Go to Home', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                   ),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('SOS Alert Cancelled', style: GoogleFonts.inter()),
-                          backgroundColor: AppColors.secondaryContainer,
-                        ),
-                      );
-                      context.go('/child/home');
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.secondary),
-                      foregroundColor: AppColors.secondary,
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: Text('Cancel Alert', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-                  ),
-                ),
               ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(done ? 'Emergency alert cleared' : 'SOS Alert Cancelled', style: GoogleFonts.inter()),
+                        backgroundColor: done ? Colors.green : AppColors.secondaryContainer,
+                      ),
+                    );
+                    context.go('/child/home');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: done ? Colors.green : AppColors.secondary),
+                    foregroundColor: done ? Colors.green : AppColors.secondary,
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(done ? 'Clear Alert' : 'Cancel Alert', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                ),
+              ),
             ],
           ),
         ),

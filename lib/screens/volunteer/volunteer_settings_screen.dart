@@ -98,6 +98,11 @@ class _VolunteerSettingsScreenState extends State<VolunteerSettingsScreen> {
               icon: Icons.description_outlined,
               onTap: () {},
             ),
+            _buildSettingTile(
+              title: 'Help & Support',
+              icon: Icons.help_outline,
+              onTap: () => context.push('/help'),
+            ),
             const SizedBox(height: 32),
             GuardianButton(
               label: 'Sign Out',
