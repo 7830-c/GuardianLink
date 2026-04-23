@@ -1,6 +1,6 @@
-# guardian_link
+# GuardianLink
 
-A new Flutter project.
+A safety network.
 
 ## Getting Started
 
