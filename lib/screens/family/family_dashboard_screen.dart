@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/guardian_card.dart';
 
 class FamilyDashboardScreen extends StatefulWidget {
   const FamilyDashboardScreen({super.key});
@@ -13,132 +13,180 @@ class FamilyDashboardScreen extends StatefulWidget {
 class _FamilyDashboardScreenState extends State<FamilyDashboardScreen> {
   int _selectedIndex = 0;
 
-  final List<Map<String, dynamic>> _members = [
-    {'name': 'Arjun', 'status': 'Safe', 'location': 'School, Sector 12', 'time': '2 min ago', 'online': true},
-    {'name': 'Priya', 'status': 'Safe', 'location': 'Home', 'time': '5 min ago', 'online': true},
-    {'name': 'Meera', 'status': 'Unknown', 'location': 'Last seen: Mall', 'time': '45 min ago', 'online': false},
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Family Dashboard', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                Text('All systems operational', style: GoogleFonts.inter(fontSize: 12, color: AppColors.tertiary)),
-              ]),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.notifications_outlined, color: AppColors.onSurface), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.settings_outlined, color: AppColors.onSurface), onPressed: () => context.push('/settings')),
-            ]),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // Status overview
-                const Row(children: [
-                  Expanded(child: _StatCard(value: '3', label: 'Family Members', icon: Icons.people, color: AppColors.primary)),
-                  SizedBox(width: 12),
-                  Expanded(child: _StatCard(value: '2', label: 'Active', icon: Icons.check_circle, color: Colors.green)),
-                  SizedBox(width: 12),
-                  Expanded(child: _StatCard(value: '0', label: 'Alerts', icon: Icons.warning_amber, color: AppColors.secondary)),
-                ]),
-                const SizedBox(height: 24),
-                // Active alert banner (mock)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [AppColors.secondaryContainer.withValues(alpha: 0.6), AppColors.errorContainer.withValues(alpha: 0.3)]),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('alerts')
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            // Loading state
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final alertDocs = snapshot.data?.docs ?? [];
+            final activeAlerts = alertDocs.where((doc) => doc['status'] == 'urgent').toList();
+            final bool hasAlert = activeAlerts.isNotEmpty;
+
+            return Column(children: [
+              // 1. Header
+              _buildHeader(),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 2. Stats Overview 
+                      _buildStatOverview(activeAlerts.length),
+                      
+                      const SizedBox(height: 24),
+
+                      // 3. EMERGENCY BANNER 
+                      if (hasAlert)
+                        _buildEmergencyBanner(activeAlerts.first['senderName'] ?? "Hello"),
+
+                      const SizedBox(height: 24),
+                      Text('Family Members', 
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                      const SizedBox(height: 12),
+
+                      // 4. DYNAMIC MEMBER LIST
+                      ...activeAlerts.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _buildMemberCard(data['senderName'] ?? "Hello", true);
+                      }),
+                      
+                      _buildMemberCard("Priya", false),
+                      _buildMemberCard("Meera", false),
+
+                      const SizedBox(height: 24),
+                      Text('Quick Actions', 
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                      const SizedBox(height: 12),
+                      _buildQuickActions(),
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.info_outline, color: AppColors.secondary, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text('Meera\'s location has not updated for 45 min', style: GoogleFonts.inter(fontSize: 13, color: AppColors.secondary))),
-                    TextButton(onPressed: () => context.push('/family/emergency-alert'), child: Text('View', style: GoogleFonts.inter(fontSize: 12, color: AppColors.secondary, fontWeight: FontWeight.w700))),
-                  ]),
                 ),
-                const SizedBox(height: 24),
-                Text('Family Members', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                const SizedBox(height: 12),
-                ..._members.map((m) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
-                    onTap: () => context.push('/family/tracking'),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-                      ),
-                      child: Row(children: [
-                        Stack(children: [
-                          CircleAvatar(radius: 24, backgroundColor: AppColors.surfaceContainerHighest,
-                              child: Text(m['name'][0], style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.primary))),
-                          if (m['online']) Positioned(bottom: 0, right: 0, child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle, border: Border.all(color: AppColors.surfaceContainerHigh, width: 2)))),
-                        ]),
-                        const SizedBox(width: 14),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(m['name'], style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                          const SizedBox(height: 2),
-                          Row(children: [
-                            const Icon(Icons.location_on, size: 12, color: AppColors.onSurfaceVariant),
-                            const SizedBox(width: 2),
-                            Expanded(child: Text(m['location'], style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant), overflow: TextOverflow.ellipsis)),
-                          ]),
-                          const SizedBox(height: 2),
-                          Text(m['time'], style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline)),
-                        ])),
-                        StatusChip(label: m['status'], color: m['status'] == 'Safe' ? Colors.green : AppColors.secondary),
-                      ]),
-                    ),
-                  ),
-                )),
-                const SizedBox(height: 24),
-                // Quick actions
-                Text('Quick Actions', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(child: _ActionBtn(icon: Icons.map_outlined, label: 'Live Map', color: AppColors.primary, onTap: () => context.push('/live-tracking'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _ActionBtn(icon: Icons.history, label: 'Alert History', color: AppColors.tertiary, onTap: () => context.push('/family/alert-history'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _ActionBtn(icon: Icons.person_add_outlined, label: 'Add Member', color: AppColors.onSurfaceVariant, onTap: () => context.push('/family/profile-management'))),
-                ]),
-                const SizedBox(height: 24),
-              ]),
-            ),
-          ),
-        ]),
+              ),
+            ]);
+          },
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (i) {
-          if (i == 1) context.push('/family/tracking');
-          if (i == 2) context.push('/family/alert-history');
-          if (i == 3) context.push('/family/settings');
-          if (i == 4) context.push('/family/profile-management');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Tracking'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), activeIcon: Icon(Icons.notifications), label: 'Alerts'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
+
+  // --- UI WIDGETS ---
+
+  Widget _buildHeader() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Row(children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Family Dashboard', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+        Text('Monitoring loved ones', style: GoogleFonts.inter(fontSize: 12, color: AppColors.tertiary)),
+      ]),
+      const Spacer(),
+      const Icon(Icons.notifications_outlined, color: AppColors.onSurface),
+    ]),
+  );
+
+  Widget _buildStatOverview(int alertCount) => Row(children: [
+    Expanded(child: _StatCard(value: '3', label: 'Members', icon: Icons.people, color: AppColors.primary)),
+    const SizedBox(width: 12),
+    Expanded(child: _StatCard(value: 'Active', label: 'Guardian', icon: Icons.security, color: Colors.green)),
+    const SizedBox(width: 12),
+    Expanded(
+      child: _StatCard(
+        value: '$alertCount', 
+        label: 'Alerts', 
+        icon: Icons.warning, 
+        color: alertCount > 0 ? Colors.red : AppColors.outline
+      ),
+    ),
+  ]);
+
+  Widget _buildEmergencyBanner(String name) => Container(
+    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.red.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.red, width: 2),
+    ),
+    child: Row(children: [
+      const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('EMERGENCY ALERT', style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11)),
+        Text('$name needs help!', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.onSurface)),
+      ])),
+      ElevatedButton(
+        onPressed: () => context.push('/live-tracking'),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+        child: const Text('TRACK'),
+      ),
+    ]),
+  );
+
+  Widget _buildMemberCard(String name, bool isUrgent) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isUrgent ? Colors.red.withOpacity(0.1) : AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isUrgent ? Colors.red : AppColors.outlineVariant.withOpacity(0.5)),
+      ),
+      child: Row(children: [
+        CircleAvatar(
+          backgroundColor: isUrgent ? Colors.red : AppColors.primary.withOpacity(0.2),
+          child: Text(name[0], 
+            style: TextStyle(color: isUrgent ? Colors.white : AppColors.primary, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.onSurface)),
+          Text(isUrgent ? "EMERGENCY" : "Safe", 
+            style: GoogleFonts.inter(fontSize: 12, color: isUrgent ? Colors.red : Colors.green, fontWeight: isUrgent ? FontWeight.bold : FontWeight.normal)),
+        ])),
+        Icon(isUrgent ? Icons.warning : Icons.check_circle, color: isUrgent ? Colors.red : Colors.green, size: 20),
+      ]),
+    );
+  }
+
+  Widget _buildQuickActions() => Row(children: [
+    Expanded(child: _ActionBtn(icon: Icons.map, label: 'Live Map', color: AppColors.primary, onTap: () => context.push('/live-tracking'))),
+    const SizedBox(width: 12),
+    Expanded(child: _ActionBtn(icon: Icons.history, label: 'History', color: AppColors.tertiary, onTap: () {})),
+    const SizedBox(width: 12),
+    Expanded(child: _ActionBtn(icon: Icons.person_add, label: 'Invite', color: AppColors.onSurfaceVariant, onTap: () {})),
+  ]);
+
+  Widget _buildBottomNav() => BottomNavigationBar(
+    currentIndex: _selectedIndex,
+    type: BottomNavigationBarType.fixed,
+    backgroundColor: AppColors.background,
+    selectedItemColor: AppColors.primary,
+    unselectedItemColor: AppColors.outline,
+    onTap: (i) => setState(() => _selectedIndex = i),
+    items: const [
+      BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+      BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Tracking'),
+      BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Alerts'),
+      BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+    ],
+  );
 }
+
+// --- HELPER CLASSES ---
 
 class _StatCard extends StatelessWidget {
   final String value, label;
@@ -148,12 +196,12 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+    decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Icon(icon, color: color, size: 20),
       const SizedBox(height: 6),
-      Text(value, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: color)),
-      Text(label, style: GoogleFonts.inter(fontSize: 10, color: AppColors.onSurfaceVariant)),
+      Text(value, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+      Text(label, style: GoogleFonts.inter(fontSize: 10, color: AppColors.outline)),
     ]),
   );
 }
@@ -169,11 +217,11 @@ class _ActionBtn extends StatelessWidget {
     onTap: onTap,
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5))),
+      decoration: BoxDecoration(color: AppColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         Icon(icon, color: color, size: 24),
         const SizedBox(height: 6),
-        Text(label, textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 10, color: AppColors.onSurfaceVariant)),
+        Text(label, textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 10, color: AppColors.onSurface)),
       ]),
     ),
   );

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
 import '../../widgets/guardian_text_field.dart';
+import '../../services/auth_service.dart'; 
 
 class LovedOneLoginScreen extends StatefulWidget {
   const LovedOneLoginScreen({super.key});
@@ -14,25 +15,44 @@ class LovedOneLoginScreen extends StatefulWidget {
 
 class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
-  final _pinController = TextEditingController();
+  final _emailController = TextEditingController(); // Firebase needs Email
+  final _pinController = TextEditingController(); // This acts as Password
+  final _auth = AuthService(); // 2. AuthService Instance
+  
   bool _obscurePin = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _emailController.dispose();
     _pinController.dispose();
     super.dispose();
   }
 
+  // 3. Updated Firebase Login Logic
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        setState(() => _isLoading = false);
+      try {
+        await _auth.signIn(
+          email: _emailController.text.trim(),
+          password: _pinController.text.trim(),
+          expectedRole: 'loved_one', // Only Loved Ones can enter here
+        );
+
+        if (!mounted) return;
+        
+        // Success: Go to Arjun's Dashboard
         context.go('/loved-one/home');
+
+      } catch (e) {
+        if (!mounted) return;
+        // Show Role Error or Auth Error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -56,10 +76,9 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 64, height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.tertiaryContainer.withValues(alpha: 0.3),
+                    color: AppColors.tertiaryContainer.withAlpha(80),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(Icons.favorite, size: 32, color: AppColors.tertiary),
@@ -71,37 +90,31 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
                 Text('Sign in to your personal safety account',
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 40),
+
+                // Email Address Field
                 GuardianTextField(
-                  label: 'Phone Number',
-                  hint: '+91 00000 00000',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.onSurfaceVariant, size: 20),
-                  validator: (v) => v?.isEmpty == true ? 'Enter your phone number' : null,
+                  label: 'Email Address',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                  validator: (v) => v?.isEmpty == true ? 'Enter your email' : null,
                 ),
                 const SizedBox(height: 16),
+
+                // PIN / Password Field
                 GuardianTextField(
-                  label: 'PIN / Password',
+                  label: '6-Digit PIN',
                   controller: _pinController,
                   obscureText: _obscurePin,
                   keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.onSurfaceVariant, size: 20),
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: AppColors.onSurfaceVariant, size: 20),
+                    icon: Icon(_obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
                     onPressed: () => setState(() => _obscurePin = !_obscurePin),
                   ),
                   validator: (v) => v?.isEmpty == true ? 'Enter your PIN' : null,
                 ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: Text('Forgot PIN?',
-                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.primary)),
-                  ),
-                ),
+                
                 const SizedBox(height: 24),
                 GuardianButton(
                   label: 'Sign In',
@@ -111,35 +124,16 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
                   foregroundColor: AppColors.onTertiaryContainer,
                 ),
                 const SizedBox(height: 32),
-                // Divider
-                Row(children: [
-                  const Expanded(child: Divider(color: AppColors.outlineVariant)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('or', style: GoogleFonts.inter(color: AppColors.outline, fontSize: 13)),
+                
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text("Don't have an account? ",
+                      style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 13)),
+                  GestureDetector(
+                    onTap: () => context.go('/loved-one/register'),
+                    child: Text('Register',
+                        style: GoogleFonts.inter(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
-                  const Expanded(child: Divider(color: AppColors.outlineVariant)),
                 ]),
-                const SizedBox(height: 24),
-                GuardianButton(
-                  label: 'Sign in with Guardian Code',
-                  outlined: true,
-                  icon: Icons.qr_code_scanner,
-                  onPressed: () {},
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Don't have an account? ",
-                        style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 13)),
-                    GestureDetector(
-                      onTap: () => context.go('/loved-one/register'),
-                      child: Text('Register',
-                          style: GoogleFonts.inter(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),

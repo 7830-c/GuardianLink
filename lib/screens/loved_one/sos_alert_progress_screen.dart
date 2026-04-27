@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_colors.dart';
 
 class SosAlertProgressScreen extends StatefulWidget {
@@ -36,8 +38,48 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
     }
   }
 
+  Future<void> _clearEmergencyAlert() async {
+    final user = FirebaseAuth.instance.currentUser;
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+
+      var collection = FirebaseFirestore.instance.collection('alerts');
+      var snapshot = await collection.where('status', isEqualTo: 'urgent').get();
+
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'isEmergency': false,
+        });
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context); 
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All emergency alerts cleared!'), backgroundColor: Colors.green),
+      );
+      context.go('/loved-one/home');
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to clear: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() { 
+    _ctrl.dispose(); 
+    super.dispose(); 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,26 +92,29 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // FIXED AnimatedBuilder HERE
               AnimatedBuilder(
                 animation: _pulse,
-                builder: (_, __) => Transform.scale(
-                  scale: done ? 1.0 : _pulse.value,
-                  child: Container(
-                    width: 160, height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: done
-                          ? [const Color(0xFF16A34A), const Color(0xFF15803D)]
-                          : [AppColors.sosRed, const Color(0xFF9B1C1C)]),
-                      boxShadow: [BoxShadow(
-                        color: (done ? Colors.green : AppColors.sosRed).withValues(alpha: 0.5),
-                        blurRadius: 30, spreadRadius: 8,
-                      )],
+                builder: (BuildContext context, Widget? child) {
+                  return Transform.scale(
+                    scale: done ? 1.0 : _pulse.value,
+                    child: Container(
+                      width: 160, height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(colors: done
+                            ? [const Color(0xFF16A34A), const Color(0xFF15803D)]
+                            : [AppColors.sosRed, const Color(0xFF9B1C1C)]),
+                        boxShadow: [BoxShadow(
+                          color: (done ? Colors.green : AppColors.sosRed).withOpacity(0.5),
+                          blurRadius: 30, spreadRadius: 8,
+                        )],
+                      ),
+                      child: Icon(done ? Icons.check_circle : Icons.sos,
+                          color: Colors.white, size: 72),
                     ),
-                    child: Icon(done ? Icons.check_circle : Icons.sos,
-                        color: Colors.white, size: 72),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 40),
               Text(
@@ -88,7 +133,7 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                    border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
                   ),
                   child: const Column(children: [
                     _InfoRow(icon: Icons.people, label: '3 Volunteers Notified'),
@@ -117,15 +162,7 @@ class _SosAlertProgressScreenState extends State<SosAlertProgressScreen>
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(done ? 'Emergency alert cleared' : 'SOS Alert Cancelled', style: GoogleFonts.inter()),
-                        backgroundColor: done ? Colors.green : AppColors.secondaryContainer,
-                      ),
-                    );
-                    context.go('/loved-one/home');
-                  },
+                  onPressed: _clearEmergencyAlert,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: done ? Colors.green : AppColors.secondary),
                     foregroundColor: done ? Colors.green : AppColors.secondary,

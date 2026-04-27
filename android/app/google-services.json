@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "89439846739",
+    "project_id": "guardianlink-626c7",
+    "storage_bucket": "guardianlink-626c7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89439846739:android:5da78ed07f3fcc8265e1a6",
+        "android_client_info": {
+          "package_name": "com.guardianlink.guardian_link"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOzXppEGGwwcXKUmkcdjEnGylduf0Ir0o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,53 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
 class GuardianTextField extends StatelessWidget {
   final String label;
+  final TextEditingController controller;
+  final bool isPassword;
+  final bool? obscureText;
   final String? hint;
-  final TextEditingController? controller;
-  final bool obscureText;
-  final TextInputType keyboardType;
-  final Widget? suffixIcon;
-  final Widget? prefixIcon;
-  final String? Function(String?)? validator;
-  final int maxLines;
   final bool readOnly;
-  final VoidCallback? onTap;
+  final int? maxLines;
+  final TextInputType? keyboardType;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon; 
+  final String? Function(String?)? validator;
 
   const GuardianTextField({
     super.key,
     required this.label,
+    required this.controller,
+    this.isPassword = false,
+    this.obscureText,
     this.hint,
-    this.controller,
-    this.obscureText = false,
-    this.keyboardType = TextInputType.text,
-    this.suffixIcon,
-    this.prefixIcon,
-    this.validator,
-    this.maxLines = 1,
     this.readOnly = false,
-    this.onTap,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.prefixIcon,
+    this.suffixIcon, 
+    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      obscureText: obscureText,
+      obscureText: obscureText ?? isPassword,
+      readOnly: readOnly,
+      maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
-      maxLines: maxLines,
-      readOnly: readOnly,
-      onTap: onTap,
-      style: GoogleFonts.inter(color: AppColors.onSurface, fontSize: 14),
+      style: const TextStyle(color: AppColors.onSurface),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        suffixIcon: suffixIcon,
+        hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withAlpha(100)),
         prefixIcon: prefixIcon,
-        labelStyle: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 14),
-        hintStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 14),
+        suffixIcon: suffixIcon, // Suffix icon support
+        labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.outline),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
       ),
     );
   }

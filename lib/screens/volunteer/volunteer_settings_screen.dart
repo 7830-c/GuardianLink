@@ -204,7 +204,6 @@ class _VolunteerSettingsScreenState extends State<VolunteerSettingsScreen> {
             color: AppColors.onSurfaceVariant,
           ),
         ),
-        activeThumbColor: AppColors.primary,
       ),
     );
   }
