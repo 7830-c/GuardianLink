@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:ui' as ui;
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/guardian_map_view.dart';
+import 'officer_profile_screen.dart';
 
 class PoliceCommandCenterScreen extends StatefulWidget {
   const PoliceCommandCenterScreen({super.key});
@@ -13,188 +15,341 @@ class PoliceCommandCenterScreen extends StatefulWidget {
 }
 
 class _PoliceCommandCenterScreenState extends State<PoliceCommandCenterScreen> {
-  Set<Marker> _markers = {};
+  int _selectedIndex = 0;
+  GoogleMapController? _mapController;
+  LatLng? _focusLocation;
+  final Map<String, BitmapDescriptor> _customMarkers = {};
+  final Set<Marker> _markers = {};
+  final Set<String> _ignoredAlertIds = {};
+  
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
 
-  // 1. Function to update markers on the map
-  void _updateMarkersFromDocs(List<QueryDocumentSnapshot> docs) {
+  Future<void> _updateMarkersFromDocs(List<QueryDocumentSnapshot> docs) async {
     Set<Marker> newMarkers = {};
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final GeoPoint? loc = data['location'];
-
       if (loc != null) {
+        final String name = data['name'] ?? 'SOS';
+        final String markerKey = "${name}_red";
+        
+        if (!_customMarkers.containsKey(markerKey)) {
+          _generateMarkerIcon(name, Colors.red, markerKey);
+        }
+
         newMarkers.add(
           Marker(
             markerId: MarkerId(doc.id),
             position: LatLng(loc.latitude, loc.longitude),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-            infoWindow: InfoWindow(
-              title: 'SOS: ${data['senderName'] ?? "Unknown"}',
-              snippet: 'Status: ${data['status']}',
-            ),
+            icon: _customMarkers[markerKey] ?? BitmapDescriptor.defaultMarker,
+            infoWindow: InfoWindow(title: name),
+            onTap: () {
+              final target = LatLng(loc.latitude, loc.longitude);
+              if (mounted) setState(() => _focusLocation = target);
+              _mapController?.animateCamera(CameraUpdate.newLatLngZoom(target, 18));
+            },
           ),
         );
       }
     }
+    if (mounted) {
+      setState(() {
+        _markers.clear();
+        _markers.addAll(newMarkers);
+      });
+    }
+  }
 
-    // Sirf tab update karein jab markers change hon (Loop se bachne ke liye)
-    if (newMarkers.length != _markers.length) {
-      Future.delayed(Duration.zero, () {
-        if (mounted) setState(() => _markers = newMarkers);
+  Future<void> _generateMarkerIcon(String name, Color color, String key) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    const double width = 100.0;
+    const double height = 35.0;
+    
+    final Paint paint = Paint()..color = color;
+    final RRect rRect = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(0, 0, width, height - 10),
+      const Radius.circular(10),
+    );
+    canvas.drawRRect(rRect, paint);
+    
+    final Path path = Path();
+    path.moveTo(width / 2 - 6, height - 10);
+    path.lineTo(width / 2 + 6, height - 10);
+    path.lineTo(width / 2, height);
+    path.close();
+    canvas.drawPath(path, paint);
+
+    final TextPainter textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: name,
+      style: const TextStyle(fontSize: 11.0, color: Colors.white, fontWeight: FontWeight.bold),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset((width - textPainter.width) / 2, (height - 10 - textPainter.height) / 2));
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt(), height.toInt());
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data != null && mounted) {
+      setState(() {
+        _customMarkers[key] = BitmapDescriptor.bytes(data.buffer.asUint8List());
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      _buildDispatchContent(),
+      OfficerProfileScreen(),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(children: [
-          _buildHeader(),
-          _buildLiveMap(),
-          
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-              children: [
-                Text('Active Incidents', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green.withAlpha(30), borderRadius: BorderRadius.circular(8)),
-                  child: Text('Live Feed', style: GoogleFonts.inter(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-          
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('alerts')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final docs = snapshot.data!.docs;
-
-                // 2. Map markers ko update karna
-                if (docs.isNotEmpty) {
-                  _updateMarkersFromDocs(docs);
-                }
-
-                if (docs.isEmpty) {
-                  return Center(child: Text('No active incidents', style: GoogleFonts.inter(color: AppColors.outline)));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: docs.length,
-                  itemBuilder: (_, i) {
-                    final data = docs[i].data() as Map<String, dynamic>;
-                    final docId = docs[i].id;
-                    return _buildIncidentCard(data, docId);
-                  },
-                );
-              },
-            ),
-          ),
-        ]),
+        child: pages[_selectedIndex],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        backgroundColor: AppColors.background,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.outline,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Dispatch'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)]),
+  Widget _buildDispatchContent() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    return Column(children: [
+      _buildHeader(),
+      
+      // Increased Map height for a more commanding view
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Container(
+          height: screenHeight * 0.4, 
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFF131B2E), 
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.outlineVariant.withAlpha(80), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(120),
+                blurRadius: 25,
+                offset: const Offset(0, 12),
+              )
+            ],
+          ),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: GoogleMap(
+                  initialCameraPosition: const CameraPosition(target: LatLng(28.6139, 77.2090), zoom: 16),
+                  markers: _markers,
+                  myLocationEnabled: true,
+                  style: _mapStyle,
+                  onMapCreated: (controller) => _mapController = controller,
+                ),
+              ),
+              if (_focusLocation != null)
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: FloatingActionButton.extended(
+                    onPressed: () {
+                      final url = 'https://www.google.com/maps/dir/?api=1&destination=${_focusLocation!.latitude},${_focusLocation!.longitude}';
+                      launchUrl(Uri.parse(url));
+                    },
+                    backgroundColor: AppColors.primary,
+                    icon: const Icon(Icons.directions, color: Colors.white),
+                    label: const Text('Get Direction', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-      child: Row(children: [
-        const Icon(Icons.local_police, color: AppColors.primary, size: 24),
-        const SizedBox(width: 12),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Command Center', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
-          Text('Real-time Dispatch', style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary)),
+      
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+          children: [
+            Text('Active Incidents', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.red.withAlpha(30), borderRadius: BorderRadius.circular(8)),
+              child: Row(children: [
+                const Icon(Icons.circle, color: Colors.red, size: 8),
+                const SizedBox(width: 6),
+                Text('LIVE FEED', style: GoogleFonts.inter(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              ]),
+            ),
+          ],
+        ),
+      ),
+      
+      Expanded(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('alerts')
+              .where('status', whereIn: ['pending', 'acknowledged'])
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs.where((doc) => !_ignoredAlertIds.contains(doc.id)).toList();
+
+            if (docs.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _updateMarkersFromDocs(docs);
+              });
+            }
+
+            if (docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 48, color: AppColors.outlineVariant),
+                    const SizedBox(height: 12),
+                    Text('No active incidents', style: GoogleFonts.inter(color: AppColors.outline)),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: docs.length,
+              itemBuilder: (_, i) {
+                final data = docs[i].data() as Map<String, dynamic>;
+                final docId = docs[i].id;
+                return _buildIncidentCard(data, docId);
+              },
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildHeader() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Row(children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('POLICE COMMAND', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.primary, letterSpacing: 2)),
+        Text('Dispatch Center', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+      ]),
+      const Spacer(),
+      CircleAvatar(
+        backgroundColor: AppColors.primary.withAlpha(40),
+        child: const Icon(Icons.security, color: AppColors.primary),
+      ),
+    ]),
+  );
+
+  Widget _buildIncidentCard(Map<String, dynamic> data, String id) {
+    final bool isAcknowledged = data['status'] == 'acknowledged';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isAcknowledged
+              ? Colors.green.withAlpha(120)
+              : AppColors.outlineVariant.withAlpha(50),
+          width: isAcknowledged ? 1.5 : 1,
+        ),
+      ),
+      child: Column(children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isAcknowledged ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.sos, color: isAcknowledged ? Colors.green : Colors.red, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('SOS Alert', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
+            Text('ID: ${id.substring(0,8).toUpperCase()}', style: GoogleFonts.inter(fontSize: 12, color: AppColors.outline)),
+          ])),
+          // Acknowledged badge
+          if (isAcknowledged)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withAlpha(120)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.check_circle, size: 12, color: Colors.green),
+                const SizedBox(width: 4),
+                Text('EN ROUTE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.green)),
+              ]),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withAlpha(80)),
+              ),
+              child: Text('PENDING', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.red)),
+            ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.location_searching, color: AppColors.primary),
+            onPressed: () {
+              final GeoPoint? loc = data['location'];
+              if (loc != null) {
+                final target = LatLng(loc.latitude, loc.longitude);
+                setState(() => _focusLocation = target);
+                _mapController?.animateCamera(CameraUpdate.newLatLngZoom(target, 18));
+              }
+            },
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: OutlinedButton(
+            onPressed: () => setState(() => _ignoredAlertIds.add(id)),
+            child: const Text('Ignore'),
+          )),
+          const SizedBox(width: 12),
+          Expanded(child: ElevatedButton(
+            onPressed: () => context.push('/police/incident-command-view/$id'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: Text(isAcknowledged ? 'View / Resolve' : 'Dispatch'),
+          )),
         ]),
       ]),
     );
   }
 
-  Widget _buildLiveMap() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        height: 220,
-        decoration: BoxDecoration(
-          color: const Color(0xFF131B2E), 
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.outlineVariant.withAlpha(50)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: GuardianMapView(
-            initialPosition: const LatLng(28.6139, 77.2090), 
-            zoom: 11.0,
-            markers: _markers, // 3. Markers yahan map par dikhenge
-          ),
-        ),
-      ),
-    );
-  }
+  // Archive content removed to show only active alerts
 
-  Widget _buildIncidentCard(Map<String, dynamic> data, String id) {
-    bool isUrgent = data['status'] == 'urgent';
-    String senderName = data['senderName'] ?? 'Unknown User';
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isUrgent ? Colors.red.withAlpha(100) : AppColors.outlineVariant, width: 1.5),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isUrgent ? Colors.red.withAlpha(30) : AppColors.primary.withAlpha(30),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.warning_rounded, color: isUrgent ? Colors.red : AppColors.primary, size: 24),
-        ),
-        title: Text(senderName, style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SizedBox(height: 4),
-          Text('Status: ${data['status']}', style: GoogleFonts.inter(fontSize: 12, color: isUrgent ? Colors.redAccent : Colors.orange, fontWeight: FontWeight.w600)),
-          Text('ID: ${id.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, color: AppColors.outline)),
-        ]),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.outline),
-        onTap: () {
-          // Future: Navigate to detail view
-        },
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      backgroundColor: AppColors.surface,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.outline,
-      currentIndex: 0,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Dispatch'),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Archive'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-      ],
-    );
-  }
+  final String? _mapStyle = null; 
 }

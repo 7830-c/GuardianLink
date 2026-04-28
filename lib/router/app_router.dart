@@ -48,7 +48,7 @@ class AppRouter {
 
       // Loved One Routes
       GoRoute(path: '/loved-one/login', builder: (c, s) => const LovedOneLoginScreen()),
-      GoRoute(path: '/loved-one/register', builder: (c, s) => const LovedOneRegistrationScreen()),
+      GoRoute(path: '/loved-one/register', builder: (c, s) => LovedOneRegistrationScreen(guardianPhone: s.extra as String?)),
       GoRoute(path: '/loved-one/home', builder: (c, s) => const LovedOneHomeScreen()),
       GoRoute(path: '/loved-one/sos-progress', builder: (c, s) => const SosAlertProgressScreen()),
 
@@ -67,7 +67,10 @@ class AppRouter {
       GoRoute(path: '/volunteer/login', builder: (c, s) => const VolunteerLoginScreen()),
       GoRoute(path: '/volunteer/register', builder: (c, s) => const VolunteerRegistrationScreen()),
       GoRoute(path: '/volunteer/active-alerts', builder: (c, s) => const ActiveAlertsScreen()),
-      GoRoute(path: '/volunteer/incident-detail', builder: (c, s) => const IncidentResponseDetailScreen()),
+      GoRoute(
+        path: '/volunteer/incident-detail/:alertId', 
+        builder: (c, s) => IncidentResponseDetailScreen(alertId: s.pathParameters['alertId']!)
+      ),
       GoRoute(path: '/volunteer/response-confirmed', builder: (c, s) => const ResponseConfirmedScreen()),
       GoRoute(path: '/volunteer/response-history', builder: (c, s) => const ResponseHistoryScreen()),
       GoRoute(path: '/volunteer/profile', builder: (c, s) => const VolunteerProfileScreen()),
@@ -78,7 +81,10 @@ class AppRouter {
       GoRoute(path: '/police/login', builder: (c, s) => const PoliceLoginScreen()),
       GoRoute(path: '/police/register', builder: (c, s) => const PoliceRegistrationScreen()),
       GoRoute(path: '/police/command-center', builder: (c, s) => const PoliceCommandCenterScreen()),
-      GoRoute(path: '/police/incident-command-view', builder: (c, s) => const IncidentCommandViewScreen()),
+      GoRoute(
+        path: '/police/incident-command-view/:alertId', 
+        builder: (c, s) => IncidentCommandViewScreen(alertId: s.pathParameters['alertId']!)
+      ),
       GoRoute(path: '/police/settings', builder: (c, s) => const PoliceSettingsScreen()),
       GoRoute(path: '/police/archive', builder: (c, s) => const PoliceIncidentArchiveScreen()),
       GoRoute(path: '/police/profile', builder: (c, s) => const OfficerProfileScreen()),

@@ -85,10 +85,10 @@ class _GuardianMapViewState extends State<GuardianMapView> {
             target: widget.initialPosition,
             zoom: widget.zoom,
           ),
+          style: _darkMapStyle,
           mapType: _currentMapType,
           onMapCreated: (GoogleMapController controller) {
             _controller = controller;
-            _controller?.setMapStyle(_darkMapStyle);
             // Agar markers pehle se hain, toh focus karo
             if (widget.markers.isNotEmpty) _focusOnSOS();
           },
@@ -148,7 +148,7 @@ class _MapControlBtn extends StatelessWidget {
         width: 36, height: 36,
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHigh.withOpacity(0.9),
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: AppColors.onSurface, size: 18),

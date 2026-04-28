@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart'; // Firebase core import
 import 'firebase_options.dart'; // Configuration file import
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
+
+import 'services/notification_service.dart';
 
 void main() async {
   // 1. Flutter bindings initialize karna zaroori hai async main ke liye
@@ -13,6 +16,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Register Background Message Handler
+  FirebaseMessaging.onBackgroundMessage(NotificationService.firebaseMessagingBackgroundHandler);
+
+  // Initialize Notification Service (Local & FCM)
+  await NotificationService.initialize();
+  NotificationService.initializeForegroundListeners();
 
   // System UI setup
   SystemChrome.setSystemUIOverlayStyle(

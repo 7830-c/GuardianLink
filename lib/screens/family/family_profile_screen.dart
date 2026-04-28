@@ -1,96 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/guardian_button.dart';
-import '../../widgets/guardian_text_field.dart';
+import '../../services/auth_service.dart';
 
 class FamilyProfileScreen extends StatefulWidget {
   const FamilyProfileScreen({super.key});
+
   @override
   State<FamilyProfileScreen> createState() => _FamilyProfileScreenState();
 }
 
 class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
-  final _nameCtrl = TextEditingController(text: 'Raj Sharma');
-  final _emailCtrl = TextEditingController(text: 'raj.sharma@example.com');
-  final _phoneCtrl = TextEditingController(text: '+91 98765 43210');
-  final _addressCtrl = TextEditingController(text: 'Rohini, New Delhi, 110085');
-  bool _editing = false;
+  final _auth = AuthService();
+  final _user = FirebaseAuth.instance.currentUser;
+  
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
 
   @override
-  void dispose() { _nameCtrl.dispose(); _emailCtrl.dispose(); _phoneCtrl.dispose(); _addressCtrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    if (_user == null) return;
+    try {
+      // Find the guardian document by phone or UID
+      // Since we store by UID now (after my recent update)
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('guardian')
+          .doc(_user!.uid)
+          .get();
+      
+      if (mounted) {
+        setState(() {
+          _userData = doc.data() as Map<String, dynamic>?;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
-        actions: [IconButton(icon: Icon(_editing ? Icons.close : Icons.edit_outlined), onPressed: () => setState(() => _editing = !_editing))],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(children: [
-          // Avatar
-          Stack(alignment: Alignment.bottomRight, children: [
-            Container(
-              width: 96, height: 96,
-              decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF1E40AF), Color(0xFF3755C3)]), boxShadow: [BoxShadow(color: AppColors.primaryContainer.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2)]),
-              child: const Icon(Icons.person, size: 52, color: Colors.white),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 20),
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: AppColors.primaryContainer,
+            child: Text(
+              (_userData?['name'] ?? 'U')[0].toUpperCase(),
+              style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.onPrimaryContainer),
             ),
-            if (_editing) Container(
-              width: 32, height: 32,
-              decoration: const BoxDecoration(color: AppColors.primaryContainer, shape: BoxShape.circle),
-              child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-            ),
-          ]),
+          ),
           const SizedBox(height: 16),
-          Text('Raj Sharma', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-          const SizedBox(height: 4),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text('Guardian Account', style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant)),
-          ]),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.primaryContainer.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.primary.withValues(alpha: 0.4))),
-            child: Text('ID: GL-2024-7843', style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
+          Text(
+            _userData?['name'] ?? 'Guardian Name',
+            style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+          ),
+          Text(
+            _userData?['phone'] ?? 'Phone Number',
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 32),
-          // Stats row
-          const Row(children: [
-            _ProfileStat(value: '3', label: 'Members'),
-            _ProfileStat(value: '12', label: 'Alerts'),
-            _ProfileStat(value: '98%', label: 'Safety Score'),
-          ]),
-          const SizedBox(height: 32),
-          // Form fields
-          GuardianTextField(label: 'Full Name', controller: _nameCtrl, readOnly: !_editing, prefixIcon: const Icon(Icons.person_outline, size: 18, color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          GuardianTextField(label: 'Email Address', controller: _emailCtrl, readOnly: !_editing, prefixIcon: const Icon(Icons.email_outlined, size: 18, color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          GuardianTextField(label: 'Phone Number', controller: _phoneCtrl, readOnly: !_editing, prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          GuardianTextField(label: 'Home Address', controller: _addressCtrl, readOnly: !_editing, maxLines: 2, prefixIcon: const Icon(Icons.home_outlined, size: 18, color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 24),
-          if (_editing) GuardianButton(label: 'Save Changes', onPressed: () => setState(() => _editing = false)),
-          const SizedBox(height: 24),
-        ]),
+          
+          _buildInfoTile(Icons.person_outline, 'Relationship', _userData?['relationship'] ?? 'Family Head'),
+          _buildInfoTile(Icons.child_care, 'Linked Loved Ones', '${(_userData?['lovedOnesIds'] as List?)?.length ?? 0} Members'),
+          _buildInfoTile(Icons.verified_user_outlined, 'Role', 'Guardian / Family'),
+          
+          const SizedBox(height: 40),
+          
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await _auth.signOut();
+                if (context.mounted) context.go('/role-selection');
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.1),
+                foregroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _ProfileStat extends StatelessWidget {
-  final String value, label;
-  const _ProfileStat({required this.value, required this.label});
-  @override
-  Widget build(BuildContext context) => Expanded(child: Column(children: [
-    Text(value, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.primary)),
-    Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
-  ]));
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 22),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
+              Text(value, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

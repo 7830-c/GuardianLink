@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
 import '../../widgets/guardian_text_field.dart';
-import '../../services/auth_service.dart'; // Import AuthService
+import 'package:geolocator/geolocator.dart';
+import '../../services/auth_service.dart';
 
 class LovedOneRegistrationScreen extends StatefulWidget {
-  const LovedOneRegistrationScreen({super.key});
+  final String? guardianPhone;
+  const LovedOneRegistrationScreen({super.key, this.guardianPhone});
 
   @override
   State<LovedOneRegistrationScreen> createState() => _LovedOneRegistrationScreenState();
@@ -18,25 +22,29 @@ class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen>
   
   // Input Controllers
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController(); // Added email for Firebase Auth
-  final _ageController = TextEditingController();
   final _phoneController = TextEditingController();
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
-  final _guardianCodeController = TextEditingController();
+  final _guardianPhoneController = TextEditingController();
   
-  final _auth = AuthService(); // Initialize AuthService
+  final _auth = AuthService(); 
   bool _isLoading = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    if (widget.guardianPhone != null) {
+      _guardianPhoneController.text = widget.guardianPhone!;
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _ageController.dispose();
     _phoneController.dispose();
     _pinController.dispose();
     _confirmPinController.dispose();
-    _guardianCodeController.dispose();
+    _guardianPhoneController.dispose();
     super.dispose();
   }
 
@@ -46,28 +54,57 @@ class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen>
       setState(() => _isLoading = true);
       
       try {
-        // Registering the Loved One in Firebase
-        // Note: Using the 6-digit PIN as the password
+        final rawGuardianPhone = _guardianPhoneController.text.trim();
+        final guardianPhone = rawGuardianPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+        // 1. Check if Guardian exists in Firestore
+        final guardianQuery = await FirebaseFirestore.instance
+            .collection('guardian')
+            .where('phone', isEqualTo: guardianPhone)
+            .limit(1)
+            .get();
+
+        if (guardianQuery.docs.isEmpty) {
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          _showErrorDialog(
+            "Guardian Not Found", 
+            "The guardian phone number ($guardianPhone) is not registered. Please ask your guardian to create an account first."
+          );
+          return;
+        }
+
+        // 2. Get current location
+        Position? position;
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5),
+          );
+        } catch (e) {
+          // Fallback if location fails
+        }
+
+        // 3. Register the Loved One
         await _auth.register(
-          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
           password: _pinController.text.trim(),
-          role: 'loved_one',
+          role: 'child',
+          lat: position?.latitude,
+          lng: position?.longitude,
           additionalData: {
             'name': _nameController.text.trim(),
-            'age': int.tryParse(_ageController.text.trim()) ?? 0,
-            'phone': _phoneController.text.trim(),
-            'guardianInviteCode': _guardianCodeController.text.trim(),
-            'status': 'safe', // Default safety status
+            'status': 'safe',
+            'parentPhone': guardianPhone, // Used for automatic linking in FirestoreService
           },
         );
 
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created! Welcome to the network.')),
+          const SnackBar(content: Text('Account created and linked to guardian!')),
         );
 
-        // Redirect to loved one home screen
         context.go('/loved-one/home');
 
       } catch (e) {
@@ -79,6 +116,30 @@ class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen>
         if (mounted) setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerHigh,
+        title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+        content: Text(message, style: GoogleFonts.inter(color: AppColors.onSurface)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.go('/role-selection'); // Or directly to family registration if path known
+            },
+            child: const Text('Create Guardian Account'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -102,43 +163,21 @@ class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen>
                 Text('Create Account',
                     style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
                 const SizedBox(height: 8),
-                Text('Register for your personal safety network',
+                Text('Register and link to your guardian',
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 32),
-                
                 const _StepIndicator(currentStep: 1, totalSteps: 2),
                 const SizedBox(height: 32),
                 
-                // Name Field
                 GuardianTextField(
                   label: 'Full Name',
                   controller: _nameController,
+                  keyboardType: TextInputType.name,
                   prefixIcon: const Icon(Icons.person_outline, size: 20),
                   validator: (v) => v?.isEmpty == true ? 'Enter your name' : null,
                 ),
                 const SizedBox(height: 16),
 
-                // Email Field (Required for Firebase)
-                GuardianTextField(
-                  label: 'Email Address',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                  validator: (v) => v?.isEmpty == true ? 'Email is required' : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Age Field
-                GuardianTextField(
-                  label: 'Age',
-                  controller: _ageController,
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.cake_outlined, size: 20),
-                  validator: (v) => v?.isEmpty == true ? 'Enter your age' : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Phone Field
                 GuardianTextField(
                   label: 'Phone Number',
                   controller: _phoneController,
@@ -148,62 +187,35 @@ class _LovedOneRegistrationScreenState extends State<LovedOneRegistrationScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // 6-Digit PIN as Password
                 GuardianTextField(
-                  label: 'Create PIN (6-digit)',
-                  controller: _pinController,
-                  isPassword: true,
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                  validator: (v) => v?.length != 6 ? 'PIN must be 6 digits' : null,
+                  label: 'Guardian Phone Number',
+                  controller: _guardianPhoneController,
+                  keyboardType: TextInputType.phone,
+                  prefixIcon: const Icon(Icons.family_restroom, size: 20, color: AppColors.tertiary),
+                  validator: (v) => v?.isEmpty == true ? 'Guardian phone is required for safety' : null,
                 ),
                 const SizedBox(height: 16),
 
-                // Confirm PIN
                 GuardianTextField(
-                  label: 'Confirm PIN',
+                  label: 'Create Password',
+                  controller: _pinController,
+                  isPassword: true,
+                  keyboardType: TextInputType.text,
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  validator: (v) => v?.isEmpty == true ? 'Enter a password' : null,
+                ),
+                const SizedBox(height: 16),
+
+                GuardianTextField(
+                  label: 'Confirm Password',
                   controller: _confirmPinController,
                   isPassword: true,
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.text,
                   prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                  validator: (v) => v != _pinController.text ? 'PINs do not match' : null,
+                  validator: (v) => v != _pinController.text ? 'Passwords do not match' : null,
                 ),
                 const SizedBox(height: 24),
                 
-                // Link to Guardian Section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryContainer.withAlpha(100)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.link, color: AppColors.primary, size: 18),
-                          const SizedBox(width: 8),
-                          Text('Link to Guardian',
-                              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text('Ask your guardian to share their invite code',
-                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                      const SizedBox(height: 12),
-                      GuardianTextField(
-                        label: 'Guardian Invite Code',
-                        controller: _guardianCodeController,
-                        prefixIcon: const Icon(Icons.qr_code, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Register Button
                 GuardianButton(
                   label: 'Create Account',
                   isLoading: _isLoading,

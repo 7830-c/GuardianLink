@@ -6,23 +6,27 @@ import 'auth_service.dart';
 class PoliceRegistrationLogic {
   final AuthService _auth = AuthService();
 
-  Future<void> registerPolice(BuildContext context, String email, String password, String name, String badgeNumber, String station) async {
+  Future<void> registerPolice(BuildContext context, String phone, String password, String name, String badgeNumber, String station, String city, double lat, double lng) async {
     try {
       await _auth.register(
-        email: email,
+        phone: phone,
         password: password,
         role: 'police',
         additionalData: {
           'name': name,
           'badgeNumber': badgeNumber,
           'station': station,
-          'isVerified': false, // Requires admin verification later
+          'city': city,
+          'location': GeoPoint(lat, lng),
+          'isVerified': false, 
         },
       );
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Police profile created successfully!')),
       );
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
@@ -33,18 +37,20 @@ class PoliceRegistrationLogic {
 class VolunteerRegistrationLogic {
   final AuthService _auth = AuthService();
 
-  Future<void> registerVolunteer(BuildContext context, String email, String password, String name, String phone, List<String> skills) async {
+  Future<void> registerVolunteer(BuildContext context, String phone, String password, String name, List<String> skills, String roleType, double lat, double lng) async {
     try {
       await _auth.register(
-        email: email,
+        phone: phone,
         password: password,
         role: 'volunteer',
         additionalData: {
           'name': name,
           'phone': phone,
-          'skills': skills, // e.g., ['First Aid', 'CPR']
+          'skills': skills,
+          'roleType': roleType, // e.g., 'teacher', 'shopkeeper'
+          'location': GeoPoint(lat, lng),
           'isAvailable': true,
-          'rating': 0.0, // Default rating
+          'rating': 0.0,
         },
       );
     } catch (e) {
@@ -56,16 +62,16 @@ class VolunteerRegistrationLogic {
 class FamilyRegistrationLogic {
   final AuthService _auth = AuthService();
 
-  Future<void> registerFamily(BuildContext context, String email, String password, String name, String relationship) async {
+  Future<void> registerFamily(BuildContext context, String phone, String password, String name, String relationship) async {
     try {
       await _auth.register(
-        email: email,
+        phone: phone,
         password: password,
         role: 'family',
         additionalData: {
           'name': name,
           'relationship': relationship,
-          'linkedLovedOnes': [], // Array of UIDs for loved ones they monitor
+          'lovedOnesIds': [], // Array of linked child IDs
         },
       );
     } catch (e) {

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guardian_button.dart';
 import '../../widgets/guardian_text_field.dart';
-import '../../services/auth_service.dart'; // Import AuthService
+import '../../services/auth_service.dart';
 
 class PoliceRegistrationScreen extends StatefulWidget {
   const PoliceRegistrationScreen({super.key});
@@ -15,57 +16,64 @@ class PoliceRegistrationScreen extends StatefulWidget {
 class _PoliceRegistrationScreenState extends State<PoliceRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  // Controllers for input fields
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController(); // Added email controller
-  final _passwordCtrl = TextEditingController(); // Added password controller
+  final _phoneCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   final _badgeCtrl = TextEditingController();
   final _stationCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
   
-  final _auth = AuthService(); // Initialize AuthService instance
+  final _auth = AuthService();
   bool _loading = false;
 
   @override
   void dispose() { 
     _nameCtrl.dispose(); 
-    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     _badgeCtrl.dispose(); 
     _stationCtrl.dispose(); 
+    _cityCtrl.dispose(); 
     super.dispose(); 
   }
 
-  // Handle police officer registration
   Future<void> _handleRegistration() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _loading = true);
       
       try {
-        // Calling register from AuthService
+        Position? pos;
+        try {
+          pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5),
+          );
+        } catch (e) {
+          // Fallback
+        }
+
         await _auth.register(
-          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
           password: _passwordCtrl.text.trim(),
           role: 'police',
+          lat: pos?.latitude,
+          lng: pos?.longitude,
           additionalData: {
             'name': _nameCtrl.text.trim(),
-            'badgeNumber': _badgeCtrl.text.trim(),
+            'Id_no': _badgeCtrl.text.trim(), // Renamed for consistency with request
             'station': _stationCtrl.text.trim(),
-            'isVerified': false, // Police requires manual verification
+            'city': _cityCtrl.text.trim(),
+            'isVerified': false,
           },
         );
 
         if (!mounted) return;
-        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration successful! Waiting for approval.')),
         );
-        
-        // Redirect to login after successful registration
         context.go('/police/login');
-        
       } catch (e) {
         if (!mounted) return;
-        // Show error message if registration fails
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
@@ -86,81 +94,31 @@ class _PoliceRegistrationScreenState extends State<PoliceRegistrationScreen> {
             key: _formKey,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const SizedBox(height: 16),
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.onSurface), 
-                onPressed: () => context.go('/police/login'),
-              ),
+              IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.onSurface), onPressed: () => context.go('/police/login')),
               const SizedBox(height: 24),
               Text('Officer Registration', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
               const SizedBox(height: 8),
               Text('Register for access to GuardianLink dispatch', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
               const SizedBox(height: 32),
               
-              // Full Name Field
-              GuardianTextField(
-                label: 'Full Name', 
-                controller: _nameCtrl, 
-                prefixIcon: const Icon(Icons.person_outline, size: 20), 
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              GuardianTextField(label: 'Full Name', controller: _nameCtrl, prefixIcon: const Icon(Icons.person_outline, size: 20), validator: (v) => v?.isEmpty == true ? 'Required' : null),
               const SizedBox(height: 16),
 
-              // Email Address Field
-              GuardianTextField(
-                label: 'Email Address', 
-                controller: _emailCtrl, 
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, size: 20), 
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              GuardianTextField(label: 'Phone Number', controller: _phoneCtrl, keyboardType: TextInputType.phone, prefixIcon: const Icon(Icons.phone_outlined, size: 20), validator: (v) => v?.isEmpty == true ? 'Required' : null),
               const SizedBox(height: 16),
 
-              // Password Field (Added for Firebase Auth)
-              GuardianTextField(
-                label: 'Password', 
-                controller: _passwordCtrl, 
-                isPassword: true,
-                prefixIcon: const Icon(Icons.lock_outline, size: 20), 
-                validator: (v) => (v?.length ?? 0) < 6 ? 'Password must be at least 6 characters' : null,
-              ),
+              GuardianTextField(label: 'Password', controller: _passwordCtrl, isPassword: true, prefixIcon: const Icon(Icons.lock_outline, size: 20), validator: (v) => (v?.length ?? 0) < 6 ? 'Min 6 characters' : null),
               const SizedBox(height: 16),
 
-              // Badge Number Field
-              GuardianTextField(
-                label: 'Badge Number', 
-                controller: _badgeCtrl, 
-                prefixIcon: const Icon(Icons.badge_outlined, size: 20), 
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              GuardianTextField(label: 'Police ID / Badge Number', controller: _badgeCtrl, prefixIcon: const Icon(Icons.badge_outlined, size: 20), validator: (v) => v?.isEmpty == true ? 'Required' : null),
               const SizedBox(height: 16),
 
-              // Station Name Field
-              GuardianTextField(
-                label: 'Precinct / Station Name', 
-                controller: _stationCtrl, 
-                prefixIcon: const Icon(Icons.local_police_outlined, size: 20), 
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              GuardianTextField(label: 'Station Name', controller: _stationCtrl, prefixIcon: const Icon(Icons.local_police_outlined, size: 20), validator: (v) => v?.isEmpty == true ? 'Required' : null),
+              const SizedBox(height: 16),
+
+              GuardianTextField(label: 'City', controller: _cityCtrl, prefixIcon: const Icon(Icons.location_city_outlined, size: 20), validator: (v) => v?.isEmpty == true ? 'Required' : null),
+              const SizedBox(height: 32),
               
-              const SizedBox(height: 24),
-              
-              // Information Box
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh, 
-                  borderRadius: BorderRadius.circular(12), 
-                  border: Border.all(color: AppColors.outlineVariant.withAlpha(120)),
-                ),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Icon(Icons.info_outline, color: AppColors.primary, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text('Your application will undergo department verification before access is granted.', style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant, height: 1.5))),
-                ]),
-              ),
-              const SizedBox(height: 24),
-              
-              // Submit Button
               GuardianButton(
                 label: 'Submit Verification',
                 isLoading: _loading,

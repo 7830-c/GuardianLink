@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -32,9 +35,58 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: const Interval(0.6, 1.0, curve: Curves.easeInOut)),
     );
     _controller.forward();
-    Future.delayed(const Duration(seconds: 3), () {
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      context.go('/role-selection');
+      return;
+    }
+
+    try {
+      // Fetch role from Firestore to redirect correctly
+      // We check all role collections
+      final collections = ['guardian', 'lovedOne', 'volunteers', 'police'];
+      String? role;
+      String? route;
+
+      String? collectionName;
+      for (var col in collections) {
+        final doc = await FirebaseFirestore.instance.collection(col).doc(user.uid).get();
+        if (doc.exists) {
+          role = doc.get('role');
+          collectionName = col;
+          break;
+        }
+      }
+
+      // Save FCM Token for notifications
+      if (collectionName != null) {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          await FirebaseFirestore.instance.collection(collectionName).doc(user.uid).update({
+            'fcmToken': token,
+          });
+        }
+      }
+
+      if (role == 'family') route = '/family/dashboard';
+      else if (role == 'child') route = '/loved-one/home';
+      else if (role == 'volunteer') route = '/volunteer/active-alerts';
+      else if (role == 'police') route = '/police/command-center';
+
+      if (mounted) {
+        if (route != null) context.go(route);
+        else context.go('/role-selection');
+      }
+    } catch (e) {
       if (mounted) context.go('/role-selection');
-    });
+    }
   }
 
   @override

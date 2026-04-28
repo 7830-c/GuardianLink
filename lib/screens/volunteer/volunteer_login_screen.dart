@@ -14,7 +14,7 @@ class VolunteerLoginScreen extends StatefulWidget {
 
 class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _auth = AuthService(); // 2. Initialize AuthService
   
@@ -23,7 +23,7 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
 
   @override
   void dispose() { 
-    _emailCtrl.dispose(); 
+    _phoneCtrl.dispose(); 
     _passCtrl.dispose(); 
     super.dispose(); 
   }
@@ -35,7 +35,7 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
       try {
         // Authenticate using Firebase and check for 'volunteer' role
         await _auth.signIn(
-          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
           password: _passCtrl.text.trim(),
           expectedRole: 'volunteer', 
         );
@@ -110,11 +110,11 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
               
               // Email Field
               GuardianTextField(
-                label: 'Email Address',
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                validator: (v) => v?.isEmpty == true ? 'Enter your email' : null,
+                label: 'Phone Number',
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                validator: (v) => v?.isEmpty == true ? 'Enter your phone number' : null,
               ),
               const SizedBox(height: 16),
               

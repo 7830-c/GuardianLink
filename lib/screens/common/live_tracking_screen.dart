@@ -172,25 +172,3 @@ class _MapStat extends StatelessWidget {
   ]);
 }
 
-class _LiveMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()..color = const Color(0xFF1E40AF).withValues(alpha: 0.08)..strokeWidth = 0.8;
-    for (double x = 0; x < size.width; x += 25) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    }
-    for (double y = 0; y < size.height; y += 25) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    final road = Paint()..color = const Color(0xFF2D3449)..strokeWidth = 8;
-    canvas.drawLine(Offset(0, size.height * 0.45), Offset(size.width, size.height * 0.48), road);
-    canvas.drawLine(Offset(size.width * 0.48, 0), Offset(size.width * 0.52, size.height), road);
-    final block = Paint()..color = const Color(0xFF171F33);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.1, size.height * 0.1, 80, 60), const Radius.circular(4)), block);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.6, size.height * 0.15, 100, 70), const Radius.circular(4)), block);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.1, size.height * 0.6, 90, 80), const Radius.circular(4)), block);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.65, size.height * 0.6, 85, 75), const Radius.circular(4)), block);
-  }
-  @override
-  bool shouldRepaint(_) => false;
-}

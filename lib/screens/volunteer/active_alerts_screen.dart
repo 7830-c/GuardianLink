@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 1. Firestore Import
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import '../../services/location_service.dart';
 import '../../theme/app_colors.dart';
+import 'volunteer_profile_screen.dart';
 
 class ActiveAlertsScreen extends StatefulWidget {
   const ActiveAlertsScreen({super.key});
@@ -11,128 +16,182 @@ class ActiveAlertsScreen extends StatefulWidget {
 }
 
 class _ActiveAlertsScreenState extends State<ActiveAlertsScreen> {
-  int _selectedIndex = 0;
   bool _available = true;
+  int _selectedIndex = 0;
+  // Local set for instant UI feedback on skip (Firestore is the source of truth)
+  final Set<String> _ignoredAlertIds = {};
+  String? _currentUid;
+  Timer? _locationTimer;
 
   @override
+  void initState() {
+    super.initState();
+    _currentUid = FirebaseAuth.instance.currentUser?.uid;
+    _startLocationUpdates();
+  }
+
+  void _startLocationUpdates() {
+    _locationTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+      if (_available) {
+        final pos = await LocationService.getCurrentLocation();
+        final user = FirebaseAuth.instance.currentUser;
+        if (pos != null && user != null) {
+          await FirebaseFirestore.instance.collection('volunteers').doc(user.uid).update({
+            'location': GeoPoint(pos.latitude, pos.longitude),
+            'lastActive': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+  @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      _buildAlertsContent(),
+      const VolunteerProfileScreen(),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Active Alerts', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                Text('Scanning for emergencies...', style: GoogleFonts.inter(fontSize: 12, color: Colors.green)),
-              ]),
-              const Spacer(),
-              Row(children: [
-                Text(_available ? 'Available' : 'Off Duty', style: GoogleFonts.inter(fontSize: 13, color: _available ? Colors.green : AppColors.outline, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 8),
-                Switch(value: _available, onChanged: (v) => setState(() => _available = v)),
-              ]),
-            ]),
-          ),
-
-          // Stats bar
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(children: [
-              _StatBadge(value: 'Live', label: 'Feed', color: AppColors.secondary),
-              SizedBox(width: 12),
-              _StatBadge(value: '1', label: 'Nearby', color: AppColors.tertiary),
-              SizedBox(width: 12),
-              _StatBadge(value: '47', label: 'Served', color: AppColors.primary),
-            ]),
-          ),
-          const SizedBox(height: 16),
-
-          // 2. Real-time SOS Feed using StreamBuilder
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('alerts')
-                  .where('status', isEqualTo: 'urgent')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final docs = snapshot.data!.docs;
-
-                if (docs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.security, size: 60, color: AppColors.outlineVariant),
-                        const SizedBox(height: 16),
-                        Text('No active emergencies nearby', style: GoogleFonts.inter(color: AppColors.outline)),
-                        Text('You are making the city safe!', style: GoogleFonts.inter(fontSize: 12, color: AppColors.outline)),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: docs.length,
-                  itemBuilder: (_, i) {
-                    final data = docs[i].data() as Map<String, dynamic>;
-                    final docId = docs[i].id;
-                    return _buildAlertCard(data, docId);
-                  },
-                );
-              },
-            ),
-          ),
-        ]),
+        child: pages[_selectedIndex],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (i) {
-          if (i == 1) context.push('/volunteer/response-history');
-          if (i == 2) context.push('/volunteer/profile');
-        },
+        currentIndex: _selectedIndex,
+        backgroundColor: AppColors.background,
+        selectedItemColor: AppColors.secondary,
+        unselectedItemColor: AppColors.outline,
+        onTap: (i) => setState(() => _selectedIndex = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.notifications_active_outlined), label: 'Alerts'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
   }
 
+  Widget _buildAlertsContent() {
+    return Column(children: [
+      // Header
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Active Alerts', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Text('Scanning for emergencies...', style: GoogleFonts.inter(fontSize: 12, color: Colors.green)),
+          ]),
+          const Spacer(),
+          Row(children: [
+            Text(_available ? 'Available' : 'Off Duty', style: GoogleFonts.inter(fontSize: 13, color: _available ? Colors.green : AppColors.outline, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            Switch(value: _available, onChanged: (v) => setState(() => _available = v)),
+          ]),
+        ]),
+      ),
+
+      // SOS Feed
+      Expanded(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('alerts')
+              .where('status', whereIn: ['pending', 'acknowledged'])
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final uid = _currentUid;
+            final docs = snapshot.data!.docs.where((doc) {
+              // Hide if locally skipped (instant feedback)
+              if (_ignoredAlertIds.contains(doc.id)) return false;
+              // Hide if this volunteer already skipped it (persisted in Firestore)
+              if (uid != null) {
+                final skipped = (doc.data() as Map<String, dynamic>)['skippedBy'];
+                if (skipped is List && skipped.contains(uid)) return false;
+              }
+              return true;
+            }).toList();
+
+            if (docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.security, size: 60, color: AppColors.outlineVariant),
+                    const SizedBox(height: 16),
+                    Text('No active emergencies nearby', style: GoogleFonts.inter(color: AppColors.outline)),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: docs.length,
+              itemBuilder: (_, i) {
+                final data = docs[i].data() as Map<String, dynamic>;
+                final docId = docs[i].id;
+                return _buildAlertCard(data, docId);
+              },
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
   Widget _buildAlertCard(Map<String, dynamic> data, String id) {
-    String senderName = data['senderName'] ?? "Unknown User";
-    
+    final bool isAcknowledged = data['status'] == 'acknowledged';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: () => context.push('/volunteer/incident-detail'),
+        onTap: () => context.push('/volunteer/incident-detail/$id'),
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.secondary.withOpacity(0.5)),
+            border: Border.all(
+              color: isAcknowledged
+                  ? Colors.green.withAlpha(120)
+                  : AppColors.secondary.withAlpha(50),
+              width: isAcknowledged ? 1.5 : 1,
+            ),
           ),
           child: Column(children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.secondaryContainer.withOpacity(0.2),
+                color: AppColors.secondaryContainer.withAlpha(20),
                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
               ),
               child: Row(children: [
                 const Icon(Icons.priority_high, size: 14, color: AppColors.secondary),
                 const SizedBox(width: 4),
                 Text('URGENT SOS', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.secondary, letterSpacing: 1)),
+                const Spacer(),
+                if (isAcknowledged)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withAlpha(30),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green.withAlpha(120)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle, size: 11, color: Colors.green),
+                      const SizedBox(width: 4),
+                      Text('EN ROUTE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.green)),
+                    ]),
+                  ),
               ]),
             ),
             Padding(
@@ -141,34 +200,59 @@ class _ActiveAlertsScreenState extends State<ActiveAlertsScreen> {
                 Row(children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: AppColors.secondary.withAlpha(30), borderRadius: BorderRadius.circular(10)),
                     child: const Icon(Icons.sos, color: AppColors.secondary, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Emergency Assistance', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                    Text('User: $senderName', style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                  const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Emergency Assistance', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text('Someone needs help nearby', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   ])),
                   const Icon(Icons.location_on, size: 16, color: AppColors.primary),
                 ]),
-                const SizedBox(height: 12),
-                Row(children: [
-                  const Icon(Icons.my_location, size: 14, color: AppColors.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Expanded(child: Text('Location Shared: Near Your Area', style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant))),
-                ]),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(children: [
                   Expanded(child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.onSurfaceVariant, side: const BorderSide(color: AppColors.outlineVariant), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: Text('Skip', style: GoogleFonts.inter(fontSize: 13)),
+                    onPressed: () => _skipAlert(id),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('SKIP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
                   )),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 6),
+                  Expanded(child: OutlinedButton(
+                    onPressed: () => context.push('/volunteer/incident-detail/$id'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white38),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('DETAILS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
+                  )),
+                  const SizedBox(width: 6),
                   Expanded(flex: 2, child: ElevatedButton(
-                    onPressed: () => context.push('/live-tracking'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: Text('Respond Now', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700)),
+                    onPressed: () {
+                      final GeoPoint? loc = data['location'];
+                      if (loc != null) {
+                        final url = 'https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}';
+                        launchUrl(Uri.parse(url));
+                      } else {
+                        context.push('/volunteer/incident-detail/$id');
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: EdgeInsets.zero,
+                      elevation: 8,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.directions, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text('RESPOND', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
+                      ],
+                    ),
                   )),
                 ]),
               ]),
@@ -178,19 +262,24 @@ class _ActiveAlertsScreenState extends State<ActiveAlertsScreen> {
       ),
     );
   }
-}
 
-class _StatBadge extends StatelessWidget {
-  final String value, label;
-  final Color color;
-  const _StatBadge({required this.value, required this.label, required this.color});
-  @override
-  Widget build(BuildContext context) => Expanded(child: Container(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.3))),
-    child: Column(children: [
-      Text(value, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
-      Text(label, style: GoogleFonts.inter(fontSize: 10, color: color.withOpacity(0.8))),
-    ]),
-  ));
+  /// Hides this alert for THIS volunteer only.
+  /// Other volunteers are unaffected — the alert remains in their feed.
+  Future<void> _skipAlert(String alertId) async {
+    // Instant local feedback so the card disappears immediately
+    setState(() => _ignoredAlertIds.add(alertId));
+
+    final uid = _currentUid;
+    if (uid == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('alerts').doc(alertId).update({
+        // arrayUnion is idempotent — safe to call multiple times
+        'skippedBy': FieldValue.arrayUnion([uid]),
+      });
+    } catch (_) {
+      // Firestore write failed — local hide already applied, so UX is unaffected.
+      // Alert will reappear on next app launch if Firestore didn't persist.
+    }
+  }
 }

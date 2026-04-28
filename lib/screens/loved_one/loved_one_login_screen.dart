@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
@@ -15,7 +16,7 @@ class LovedOneLoginScreen extends StatefulWidget {
 
 class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(); // Firebase needs Email
+  final _phoneController = TextEditingController();
   final _pinController = TextEditingController(); // This acts as Password
   final _auth = AuthService(); // 2. AuthService Instance
   
@@ -24,7 +25,7 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _pinController.dispose();
     super.dispose();
   }
@@ -35,9 +36,9 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
       setState(() => _isLoading = true);
       try {
         await _auth.signIn(
-          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
           password: _pinController.text.trim(),
-          expectedRole: 'loved_one', // Only Loved Ones can enter here
+          expectedRole: 'child', // Matches Firestore collection role
         );
 
         if (!mounted) return;
@@ -91,28 +92,28 @@ class _LovedOneLoginScreenState extends State<LovedOneLoginScreen> {
                     style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 40),
 
-                // Email Address Field
+                // Phone Number Field
                 GuardianTextField(
-                  label: 'Email Address',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                  validator: (v) => v?.isEmpty == true ? 'Enter your email' : null,
+                  label: 'Phone Number',
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                  validator: (v) => v?.isEmpty == true ? 'Enter your phone number' : null,
                 ),
                 const SizedBox(height: 16),
 
-                // PIN / Password Field
+                // Password Field
                 GuardianTextField(
-                  label: '6-Digit PIN',
+                  label: 'Password',
                   controller: _pinController,
                   obscureText: _obscurePin,
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.text,
                   prefixIcon: const Icon(Icons.lock_outline, size: 20),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePin ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
                     onPressed: () => setState(() => _obscurePin = !_obscurePin),
                   ),
-                  validator: (v) => v?.isEmpty == true ? 'Enter your PIN' : null,
+                  validator: (v) => v?.isEmpty == true ? 'Enter your password' : null,
                 ),
                 
                 const SizedBox(height: 24),

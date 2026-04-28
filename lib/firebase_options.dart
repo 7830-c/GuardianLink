@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -50,19 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBOzXppEGGwwcXKUmkcdjEnGylduf0Ir0o',
-    appId: '1:89439846739:android:5da78ed07f3fcc8265e1a6',
-    messagingSenderId: '89439846739',
-    projectId: 'guardianlink-626c7',
-    storageBucket: 'guardianlink-626c7.firebasestorage.app',
+    apiKey: 'AIzaSyAl7Aq5IBN486g5JwiqOV-JHJsJwnG1Xx0',
+    appId: '1:542301889339:android:07aab163434b2ab7888d1e',
+    messagingSenderId: '542301889339',
+    projectId: 'guardianlink-7c705',
+    storageBucket: 'guardianlink-7c705.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDra4PdHbjsDYdHJn5_hqHAAVaPcFI_88o',
-    appId: '1:89439846739:ios:567574b0cd89d64165e1a6',
-    messagingSenderId: '89439846739',
-    projectId: 'guardianlink-626c7',
-    storageBucket: 'guardianlink-626c7.firebasestorage.app',
+    apiKey: 'AIzaSyDT-Ukqsw_8o4jQUXyCPtpkIMpvE3ZuQEI',
+    appId: '1:542301889339:ios:92022804984b4abf888d1e',
+    messagingSenderId: '542301889339',
+    projectId: 'guardianlink-7c705',
+    storageBucket: 'guardianlink-7c705.firebasestorage.app',
     iosBundleId: 'com.guardianlink.guardianLink',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBaWd8mULZ9D3PF3bxIYlUxQqJSFUf07NU',
+    appId: '1:542301889339:web:f2fb4ccaad70188e888d1e',
+    messagingSenderId: '542301889339',
+    projectId: 'guardianlink-7c705',
+    authDomain: 'guardianlink-7c705.firebaseapp.com',
+    storageBucket: 'guardianlink-7c705.firebasestorage.app',
+    measurementId: 'G-MBGCV9E3HS',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyDT-Ukqsw_8o4jQUXyCPtpkIMpvE3ZuQEI',
+    appId: '1:542301889339:ios:92022804984b4abf888d1e',
+    messagingSenderId: '542301889339',
+    projectId: 'guardianlink-7c705',
+    storageBucket: 'guardianlink-7c705.firebasestorage.app',
+    iosBundleId: 'com.guardianlink.guardianLink',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBaWd8mULZ9D3PF3bxIYlUxQqJSFUf07NU',
+    appId: '1:542301889339:web:cf82b4e3f9ff33aa888d1e',
+    messagingSenderId: '542301889339',
+    projectId: 'guardianlink-7c705',
+    authDomain: 'guardianlink-7c705.firebaseapp.com',
+    storageBucket: 'guardianlink-7c705.firebasestorage.app',
+    measurementId: 'G-2RXTE21QZ5',
+  );
+
 }

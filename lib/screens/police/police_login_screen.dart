@@ -14,7 +14,7 @@ class PoliceLoginScreen extends StatefulWidget {
 
 class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController(); // Firebase uses Email for login
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _auth = AuthService(); // 2. Initialize AuthService
   
@@ -23,7 +23,7 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
 
   @override
   void dispose() { 
-    _emailCtrl.dispose(); 
+    _phoneCtrl.dispose(); 
     _passCtrl.dispose(); 
     super.dispose(); 
   }
@@ -35,7 +35,7 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
       try {
         // Calling Firebase Sign-In with Role Verification
         await _auth.signIn(
-          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
           password: _passCtrl.text.trim(),
           expectedRole: 'police', // Verification: Only police can enter here
         );
@@ -110,11 +110,11 @@ class _PoliceLoginScreenState extends State<PoliceLoginScreen> {
               
               // Email Field (Changed from Badge ID to Email)
               GuardianTextField(
-                label: 'Email Address',
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                validator: (v) => v?.isEmpty == true ? 'Enter your email' : null,
+                label: 'Phone Number',
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                validator: (v) => v?.isEmpty == true ? 'Enter your phone number' : null,
               ),
               const SizedBox(height: 16),
               

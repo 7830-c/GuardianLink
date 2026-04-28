@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 class LocationService {
   static Future<Position?> getCurrentLocation() async {
     bool serviceEnabled;
-    LocationPermission permission;
 
     // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();

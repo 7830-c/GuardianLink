@@ -69,7 +69,7 @@ class _PoliceSettingsScreenState extends State<PoliceSettingsScreen> {
         Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.onSurface)),
         Text(sub, style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
       ])),
-      Switch(value: val, onChanged: onChange, activeColor: AppColors.primary),
+      Switch(value: val, onChanged: onChange, activeThumbColor: AppColors.primary),
     ]),
   );
 

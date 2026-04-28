@@ -15,7 +15,6 @@ class FamilyRegistrationScreen extends StatefulWidget {
 class _FamilyRegistrationScreenState extends State<FamilyRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   
@@ -26,7 +25,6 @@ class _FamilyRegistrationScreenState extends State<FamilyRegistrationScreen> {
   @override
   void dispose() { 
     _nameCtrl.dispose(); 
-    _emailCtrl.dispose(); 
     _phoneCtrl.dispose(); 
     _passCtrl.dispose(); 
     super.dispose(); 
@@ -41,12 +39,11 @@ class _FamilyRegistrationScreenState extends State<FamilyRegistrationScreen> {
       try {
         // Calling the register method from AuthService
         await _auth.register(
-          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
           password: _passCtrl.text.trim(),
           role: 'family', // Setting role as 'family'
           additionalData: {
             'name': _nameCtrl.text.trim(),
-            'phone': _phoneCtrl.text.trim(),
             'agreedToTerms': _agreed,
           },
         );
@@ -115,16 +112,6 @@ class _FamilyRegistrationScreenState extends State<FamilyRegistrationScreen> {
                 label: 'Full Name', 
                 controller: _nameCtrl, 
                 prefixIcon: const Icon(Icons.person_outline, size: 20), 
-                validator: (v) => v?.isEmpty == true ? 'Required' : null
-              ),
-              const SizedBox(height: 16),
-
-              // Email Address Field
-              GuardianTextField(
-                label: 'Email Address', 
-                controller: _emailCtrl, 
-                keyboardType: TextInputType.emailAddress, 
-                prefixIcon: const Icon(Icons.email_outlined, size: 20), 
                 validator: (v) => v?.isEmpty == true ? 'Required' : null
               ),
               const SizedBox(height: 16),

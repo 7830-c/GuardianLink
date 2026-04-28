@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 
 class GuardianTextField extends StatelessWidget {
@@ -9,10 +10,12 @@ class GuardianTextField extends StatelessWidget {
   final String? hint;
   final bool readOnly;
   final int? maxLines;
+  final int? maxLength;
   final TextInputType? keyboardType;
   final Widget? prefixIcon;
   final Widget? suffixIcon; 
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
 
   const GuardianTextField({
     super.key,
@@ -23,10 +26,12 @@ class GuardianTextField extends StatelessWidget {
     this.hint,
     this.readOnly = false,
     this.maxLines = 1,
+    this.maxLength,
     this.keyboardType,
     this.prefixIcon,
     this.suffixIcon, 
     this.validator,
+    this.inputFormatters,
   });
 
   @override
@@ -36,15 +41,18 @@ class GuardianTextField extends StatelessWidget {
       obscureText: obscureText ?? isPassword,
       readOnly: readOnly,
       maxLines: maxLines,
+      maxLength: maxLength,
       keyboardType: keyboardType,
       validator: validator,
+      inputFormatters: inputFormatters,
       style: const TextStyle(color: AppColors.onSurface),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        counterText: "", // Hide the default char counter
         hintStyle: TextStyle(color: AppColors.onSurfaceVariant.withAlpha(100)),
         prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon, // Suffix icon support
+        suffixIcon: suffixIcon,
         labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

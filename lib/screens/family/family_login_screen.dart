@@ -14,7 +14,7 @@ class FamilyLoginScreen extends StatefulWidget {
 
 class _FamilyLoginScreenState extends State<FamilyLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _auth = AuthService(); // 2. AuthService Instance
   
@@ -23,7 +23,7 @@ class _FamilyLoginScreenState extends State<FamilyLoginScreen> {
 
   @override
   void dispose() { 
-    _emailCtrl.dispose(); 
+    _phoneCtrl.dispose(); 
     _passCtrl.dispose(); 
     super.dispose(); 
   }
@@ -35,7 +35,7 @@ class _FamilyLoginScreenState extends State<FamilyLoginScreen> {
       try {
         // Calling Firebase Sign-In with Role Verification
         await _auth.signIn(
-          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
           password: _passCtrl.text.trim(),
           expectedRole: 'family', // Strict check for family role
         );
@@ -88,11 +88,11 @@ class _FamilyLoginScreenState extends State<FamilyLoginScreen> {
               const SizedBox(height: 40),
               
               GuardianTextField(
-                label: 'Email Address',
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                validator: (v) => v?.isEmpty == true ? 'Enter your email' : null,
+                label: 'Phone Number',
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                validator: (v) => v?.isEmpty == true ? 'Enter your phone number' : null,
               ),
               const SizedBox(height: 16),
               GuardianTextField(

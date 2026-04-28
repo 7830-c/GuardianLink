@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "89439846739",
-    "project_id": "guardianlink-626c7",
-    "storage_bucket": "guardianlink-626c7.firebasestorage.app"
+    "project_number": "542301889339",
+    "project_id": "guardianlink-7c705",
+    "storage_bucket": "guardianlink-7c705.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:89439846739:android:5da78ed07f3fcc8265e1a6",
+        "mobilesdk_app_id": "1:542301889339:android:ec5bd0703879b1e3888d1e",
+        "android_client_info": {
+          "package_name": "com.TechSaviors.GuardianLink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7Aq5IBN486g5JwiqOV-JHJsJwnG1Xx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542301889339:android:07aab163434b2ab7888d1e",
         "android_client_info": {
           "package_name": "com.guardianlink.guardian_link"
         }
@@ -15,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBOzXppEGGwwcXKUmkcdjEnGylduf0Ir0o"
+          "current_key": "AIzaSyAl7Aq5IBN486g5JwiqOV-JHJsJwnG1Xx0"
         }
       ],
       "services": {
